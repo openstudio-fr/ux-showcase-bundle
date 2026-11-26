@@ -1,0 +1,18 @@
+{% props
+    ## string Text of the button
+    label,
+    ## ?string Smaller text under the label
+    hint = null,
+    ## string Visual weight, `primary` or `danger`
+    variant = 'primary',
+    ## list<string> Tags shown as badges,
+    ## one per line
+    tags = ['new', 'sale'],
+    ## array<string, int> Quantity by size
+    stock = {},
+    ## int
+    offset = -2,
+    year = 'now'|date('Y'),
+    plain
+%}
+<button class="btn btn-{{ variant }}">{{ label }}</button>
