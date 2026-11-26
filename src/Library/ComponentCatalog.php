@@ -80,6 +80,14 @@ final class ComponentCatalog
     }
 
     /**
+     * @return string the Twig template of the component, anonymous or not
+     */
+    public function template(string $name): string
+    {
+        return $this->factory->metadataFor($name)->getTemplate();
+    }
+
+    /**
      * @return list<string>
      */
     private function anonymousNames(): array
