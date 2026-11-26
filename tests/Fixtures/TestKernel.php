@@ -59,12 +59,12 @@ final class TestKernel extends Kernel
         }
     }
 
-    private mixed $exceptionHandlerBeforeBoot = null;
+    private int $exceptionHandlersBeforeBoot = 0;
 
     public function boot(): void
     {
         if (!$this->booted) {
-            $this->exceptionHandlerBeforeBoot = self::currentExceptionHandler();
+            $this->exceptionHandlersBeforeBoot = self::exceptionHandlerCount();
         }
 
         parent::boot();
@@ -75,7 +75,8 @@ final class TestKernel extends Kernel
     {
         parent::shutdown();
 
-        for ($attempt = 0; $attempt < 10 && self::currentExceptionHandler() !== $this->exceptionHandlerBeforeBoot; ++$attempt) {
+        // By depth and not by identity: older versions of the error handler stack the same callable more than once.
+        while (self::exceptionHandlerCount() > $this->exceptionHandlersBeforeBoot) {
             restore_exception_handler();
         }
     }
@@ -177,12 +178,24 @@ final class TestKernel extends Kernel
         }
     }
 
-    private static function currentExceptionHandler(): mixed
+    private static function exceptionHandlerCount(): int
     {
-        $handler = set_exception_handler(null);
-        restore_exception_handler();
+        $handlers = [];
+        while (true) {
+            $top = set_exception_handler(null);
+            restore_exception_handler();
+            if (null === $top) {
+                break;
+            }
+            $handlers[] = $top;
+            restore_exception_handler();
+        }
 
-        return $handler;
+        foreach (array_reverse($handlers) as $handler) {
+            set_exception_handler($handler);
+        }
+
+        return \count($handlers);
     }
 
     private function variant(): string
