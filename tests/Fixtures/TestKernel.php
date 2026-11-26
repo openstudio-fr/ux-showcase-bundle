@@ -25,6 +25,7 @@ use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
+use Symfony\Bundle\TwigBundle\Command\LintCommand;
 use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -35,6 +36,8 @@ use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\LiveComponent\LiveComponentBundle;
 use Symfony\UX\StimulusBundle\StimulusBundle;
 use Symfony\UX\TwigComponent\TwigComponentBundle;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 final class TestKernel extends Kernel
 {
@@ -146,6 +149,10 @@ final class TestKernel extends Kernel
 
         $services = $container->services();
         $services->set(AllowAllShowcaseAccess::class)->public();
+        // The application environment, which a test reads as a host application would: private and otherwise inlined.
+        $services->alias('test.twig', 'twig')->public();
+        // The command of a host application: TwigBundle does not load its console services in this test kernel.
+        $services->set('twig.command.lint', LintCommand::class)->args([service('twig'), ['*.twig']])->tag('console.command');
 
         if ($this->withLibrary) {
             $library = __DIR__.'/Library';

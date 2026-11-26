@@ -47,6 +47,7 @@ use OpenStudio\UxShowcaseBundle\Screen\TryFieldRegistry;
 use OpenStudio\UxShowcaseBundle\Screen\TryPanelFactory;
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
+use OpenStudio\UxShowcaseBundle\Twig\ShowcaseExampleExtension;
 use OpenStudio\UxShowcaseBundle\Twig\ShowcaseScreenExtension;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -75,6 +76,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(Assets::class)->args([service('router')]);
     $services->set(ShowcaseScreenExtension::class)->args([service(Assets::class)])->tag('twig.extension');
+    // The tags of the example files, known to the application so that `lint:twig` parses them; they render nothing.
+    $services->set(ShowcaseExampleExtension::class)->tag('twig.extension');
     // Before the profiler of the framework (kernel.response, -100): it must be off when it decides to collect.
     $services->set(BarePageListener::class)
         ->args([service(Assets::class), service('profiler')->nullOnInvalid()])
