@@ -42,7 +42,30 @@ final class ConfigurationTest extends TestCase
         self::assertSame('Kit', $configuration->title);
         self::assertSame('/logo.svg', $configuration->logo);
         self::assertSame(['wide' => 1600, 'fluid' => null, 'small' => 320], $configuration->viewports);
-        self::assertSame(['sand' => '#eee'], $configuration->backgrounds);
+        self::assertSame(['sand'], array_keys($configuration->backgrounds));
+        self::assertSame('#eee', $configuration->backgrounds['sand']->color);
+        self::assertSame([], $configuration->backgrounds['sand']->htmlAttributes);
+    }
+
+    public function testABackgroundIsAColourOrAColourWithHtmlAttributes(): void
+    {
+        $configuration = $this->configuration(['backgrounds' => [
+            'sand' => '#eee',
+            'night' => ['color' => '#212529', 'html_attributes' => ['data-bs-theme' => 'dark']],
+            'bare' => ['color' => '#fff'],
+        ]]);
+
+        self::assertSame(['sand', 'night', 'bare'], array_keys($configuration->backgrounds));
+        self::assertSame(['data-bs-theme' => 'dark'], $configuration->backgrounds['night']->htmlAttributes);
+        self::assertSame('#212529', $configuration->backgrounds['night']->color);
+        self::assertSame([], $configuration->backgrounds['bare']->htmlAttributes);
+    }
+
+    public function testDefaultBackgroundsKeepTheirColoursAndOrder(): void
+    {
+        $backgrounds = $this->configuration([])->backgrounds;
+
+        self::assertSame(['light' => '#f8f9fa', 'white' => '#ffffff', 'dark' => '#212529'], array_map(static fn ($background): string => $background->color, $backgrounds));
     }
 
     /**

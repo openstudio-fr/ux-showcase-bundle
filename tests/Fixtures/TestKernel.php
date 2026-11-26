@@ -46,11 +46,15 @@ final class TestKernel extends Kernel
         private readonly array $showcaseConfiguration = [],
         private readonly bool $withSecurity = false,
         private readonly bool $withLibrary = false,
+        bool $cleanCache = true,
     ) {
         parent::__construct('test', $debug);
 
         // A non-debug container is never rebuilt on its own: start clean so a test never runs on a stale one.
-        (new Filesystem())->remove(sys_get_temp_dir().'/ux-showcase-tests/'.$this->variant());
+        // The browser front controller keeps its cache between requests.
+        if ($cleanCache) {
+            (new Filesystem())->remove(sys_get_temp_dir().'/ux-showcase-tests/'.$this->variant());
+        }
     }
 
     private mixed $exceptionHandlerBeforeBoot = null;
@@ -117,6 +121,8 @@ final class TestKernel extends Kernel
             'php_errors' => ['log' => true],
             'session' => ['storage_factory_id' => 'session.storage.factory.mock_file'],
             'default_locale' => 'en',
+            // Collected in debug, as in a development application: the bare page of a preview must switch it off.
+            'profiler' => ['enabled' => $this->debug && $this->withLibrary, 'collect' => true],
         ]);
         $container->extension('ux_showcase', $this->showcaseConfiguration);
 
@@ -149,6 +155,8 @@ final class TestKernel extends Kernel
             $services->set('validator', \stdClass::class);
             $services->set(Library\ServiceLibrary::class)->autoconfigure();
             $services->set(Library\ChainReader::class)->autoconfigure();
+            $services->set(Library\Action\AddToPageAction::class)->autoconfigure();
+            $services->set(Library\Action\KeepExampleAction::class)->autoconfigure();
             $services->set(Library\Example\ArticleCard::class)->autowire()->autoconfigure();
             // Public aliases: the services themselves are private and inlined or removed when nothing else uses them.
             foreach ([ComponentDocumentation::class, ShowcaseRegistry::class, ExampleRenderer::class, ExampleCodeGenerator::class, FixtureLoader::class] as $id) {
