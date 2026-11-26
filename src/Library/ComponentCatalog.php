@@ -20,7 +20,9 @@ use Twig\Loader\FilesystemLoader;
 /**
  * Knows which TwigComponents exist. The only class that touches ComponentFactory, which is internal to TwigComponent.
  *
- * @internal
+ * A library written in PHP takes it by autowiring to list the components. `names()` and `exists()` are the API.
+ *
+ * @api
  */
 final class ComponentCatalog
 {
@@ -70,6 +72,8 @@ final class ComponentCatalog
 
     /**
      * @return class-string|null null for an anonymous component
+     *
+     * @internal exposes TwigComponent metadata
      */
     public function className(string $name): ?string
     {
@@ -81,6 +85,8 @@ final class ComponentCatalog
 
     /**
      * @return string the Twig template of the component, anonymous or not
+     *
+     * @internal exposes TwigComponent metadata
      */
     public function template(string $name): string
     {

@@ -22,7 +22,7 @@ use Symfony\Component\Finder\Finder;
  * (below the component prefix of the library, if it has one); `_docs/<Group>/<name>.showcase.twig` holds documentation
  * pages of the group `<Group>`.
  *
- * @internal
+ * @api
  */
 final readonly class TwigExampleFileProvider implements ExampleProviderInterface
 {
