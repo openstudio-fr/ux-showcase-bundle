@@ -19,6 +19,7 @@ use OpenStudio\UxShowcaseBundle\Example\PreviewOptions;
 use OpenStudio\UxShowcaseBundle\Example\PreviewOptionsResolver;
 use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
 use OpenStudio\UxShowcaseBundle\Library\ComponentReference;
+use OpenStudio\UxShowcaseBundle\Props\ComponentDoc;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -31,10 +32,11 @@ final readonly class ExampleViewFactory
         private PreviewOptionsResolver $previewResolver,
         private ActionResolver $actions,
         private UrlGeneratorInterface $urlGenerator,
+        private TryPanelFactory $tryPanels,
     ) {
     }
 
-    public function create(ComponentLibraryInterface $library, ?ComponentReference $component, Example $example, ScreenState $state): ExampleView
+    public function create(ComponentLibraryInterface $library, ?ComponentReference $component, Example $example, ScreenState $state, ?ComponentDoc $documentation = null, string $locale = 'en'): ExampleView
     {
         $query = null === $state->background ? [] : [ScreenState::BACKGROUND_PARAMETER => $state->background];
         $previewUrl = null === $component
@@ -49,6 +51,7 @@ final readonly class ExampleViewFactory
             $previewUrl,
             $preview->height,
             $this->actions->resolve(new ActionContext($library->getName(), $component, $example)),
+            null === $documentation ? null : $this->tryPanels->create($library->getName(), $example, $documentation, $locale, 'example-'.$example->slug),
         );
     }
 }

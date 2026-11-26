@@ -55,13 +55,17 @@ final readonly class ComponentController
         $state = ScreenState::fromRequest($request, $this->configuration);
         $examples = $this->registry->examples($library, $component);
 
-        $views = [];
         $documentation = null;
         foreach ($examples as $example) {
-            $views[] = $this->views->create($showcaseLibrary, $reference, $example, $state);
-            if (null === $documentation && !$example->isFree()) {
+            if (!$example->isFree()) {
                 $documentation = $this->documentation($component);
+                break;
             }
+        }
+
+        $views = [];
+        foreach ($examples as $example) {
+            $views[] = $this->views->create($showcaseLibrary, $reference, $example, $state, $documentation, $request->getLocale());
         }
 
         return new Response($this->twig->render('@OpenStudioUxShowcase/component.html.twig', [

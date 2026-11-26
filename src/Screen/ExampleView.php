@@ -25,6 +25,7 @@ final readonly class ExampleView
     /**
      * @param int|null             $height  fixed height of the frame in pixels, null to follow the content
      * @param list<ResolvedAction> $actions
+     * @param TryPanel|null        $try     the form to try other values, null for a free example
      */
     public function __construct(
         public Example $example,
@@ -32,6 +33,7 @@ final readonly class ExampleView
         public string $previewUrl,
         public ?int $height,
         public array $actions,
+        public ?TryPanel $try = null,
     ) {
     }
 }

@@ -31,6 +31,7 @@ use OpenStudio\UxShowcaseBundle\Preview\PostedValuesNormalizerInterface;
 use OpenStudio\UxShowcaseBundle\Props\PropsReaderInterface;
 use OpenStudio\UxShowcaseBundle\Screen\Background;
 use OpenStudio\UxShowcaseBundle\Screen\ComponentActionInterface;
+use OpenStudio\UxShowcaseBundle\Screen\TryFieldTypeInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
@@ -87,6 +88,7 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
         $builder->registerForAutoconfiguration(PropsReaderInterface::class)->addTag('ux_showcase.props_reader');
         $builder->registerForAutoconfiguration(PostedValuesNormalizerInterface::class)->addTag('ux_showcase.posted_values_normalizer');
         $builder->registerForAutoconfiguration(ComponentActionInterface::class)->addTag('ux_showcase.action');
+        $builder->registerForAutoconfiguration(TryFieldTypeInterface::class)->addTag('ux_showcase.try_field_type');
         $builder->registerForAutoconfiguration(ExampleProviderInterface::class)->addTag('ux_showcase.example_provider');
         $builder->registerAttributeForAutoconfiguration(
             AsShowcaseExample::class,
