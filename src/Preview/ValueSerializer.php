@@ -22,7 +22,6 @@ use Symfony\Component\Serializer\Mapping\ClassDiscriminatorResolverInterface;
 use Symfony\Component\Serializer\Mapping\Factory\ClassMetadataFactory;
 use Symfony\Component\Serializer\Mapping\Loader\AttributeLoader;
 use Symfony\Component\Serializer\Normalizer\ArrayDenormalizer;
-use Symfony\Component\Serializer\Normalizer\BackedEnumNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
@@ -30,7 +29,7 @@ use Symfony\Component\Serializer\Serializer;
 /**
  * The Serializer that turns posted data into objects and back, built here and not taken from the application so that
  * what a preview accepts does not depend on the serialization groups, name converters or normalizers the application
- * configured: object properties and constructors typed by reflection and phpdoc (property-info), backed enums, dates,
+ * configured: object properties and constructors typed by reflection and phpdoc (property-info), enums, dates,
  * lists, and the discriminator maps (`#[DiscriminatorMap]`) of interfaces and abstract classes.
  *
  * @internal
@@ -48,7 +47,7 @@ final readonly class ValueSerializer
         $propertyInfo = new PropertyInfoExtractor([$reflection], [new PhpStanExtractor(), $reflection], [], [$reflection], [$reflection]);
 
         $this->serializer = new Serializer([
-            new BackedEnumNormalizer(),
+            new EnumDenormalizer(),
             new DateTimeNormalizer(),
             new ArrayDenormalizer(),
             new ObjectNormalizer(
