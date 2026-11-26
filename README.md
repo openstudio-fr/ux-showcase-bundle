@@ -272,7 +272,7 @@ For a class component (`#[AsTwigComponent]`, `#[AsLiveComponent]`) the class rea
 component with no documentation still gets a table:
 
 - the public properties, with their type (native, or `@var` with generics: `list<VehicleDto>`, unions, enums), their
-  default and nullability, through `symfony/property-info` and its PHPStan extractor; the first line of their docblock is
+  default and nullability, through `symfony/property-info` and its PHPStan extractor; the first paragraph of their docblock is
   the description;
 - the parameters of `mount()`, with the type of their `@param` when there is one;
 - the allowed values of an enum type (the values of a backed enum, the names otherwise), and the ones a `#[PreMount]`
