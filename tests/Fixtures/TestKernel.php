@@ -59,13 +59,12 @@ final class TestKernel extends Kernel
         }
     }
 
-    private int $exceptionHandlersBeforeBoot = 0;
+    private ?int $exceptionHandlersBeforeBoot = null;
 
     public function boot(): void
     {
-        if (!$this->booted) {
-            $this->exceptionHandlersBeforeBoot = self::exceptionHandlerCount();
-        }
+        // The count before the first call: boot() is entered again while it runs, once the handler is registered.
+        $this->exceptionHandlersBeforeBoot ??= self::exceptionHandlerCount();
 
         parent::boot();
     }
@@ -76,9 +75,10 @@ final class TestKernel extends Kernel
         parent::shutdown();
 
         // By depth and not by identity: older versions of the error handler stack the same callable more than once.
-        while (self::exceptionHandlerCount() > $this->exceptionHandlersBeforeBoot) {
+        while (self::exceptionHandlerCount() > ($this->exceptionHandlersBeforeBoot ?? 0)) {
             restore_exception_handler();
         }
+        $this->exceptionHandlersBeforeBoot = null;
     }
 
     public function registerBundles(): iterable
