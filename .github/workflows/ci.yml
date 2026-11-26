@@ -48,5 +48,10 @@ jobs:
             - name: Install dependencies
               run: composer update --no-interaction --no-progress ${{ matrix.dependencies == 'lowest' && '--prefer-lowest --prefer-stable' || '' }}
 
+            - name: Drop what the Flex recipes wrote
+              run: |
+                  git checkout -- .
+                  git clean -fd
+
             - name: Check the quality gate
               run: composer check
