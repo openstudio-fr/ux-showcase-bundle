@@ -118,6 +118,58 @@
                 <source>preview.errors.title</source>
                 <target>These values cannot be previewed</target>
             </trans-unit>
+            <trans-unit id="try.title" resname="try.title">
+                <source>try.title</source>
+                <target>Try it</target>
+            </trans-unit>
+            <trans-unit id="try.show" resname="try.show">
+                <source>try.show</source>
+                <target>Show</target>
+            </trans-unit>
+            <trans-unit id="try.reset" resname="try.reset">
+                <source>try.reset</source>
+                <target>Reset</target>
+            </trans-unit>
+            <trans-unit id="try.none" resname="try.none">
+                <source>try.none</source>
+                <target>(none)</target>
+            </trans-unit>
+            <trans-unit id="try.readonly_title" resname="try.readonly_title">
+                <source>try.readonly_title</source>
+                <target>Not editable</target>
+            </trans-unit>
+            <trans-unit id="try.readonly.untyped" resname="try.readonly.untyped">
+                <source>try.readonly.untyped</source>
+                <target>Its type is not declared: give it one in the template or the class to try it.</target>
+            </trans-unit>
+            <trans-unit id="try.readonly.type" resname="try.readonly.type">
+                <source>try.readonly.type</source>
+                <target>Cannot be written in a form: its type is %type%.</target>
+            </trans-unit>
+            <trans-unit id="try.json_invalid" resname="try.json_invalid">
+                <source>try.json_invalid</source>
+                <target>Not valid JSON: %error%</target>
+            </trans-unit>
+            <trans-unit id="try.json_empty" resname="try.json_empty">
+                <source>try.json_empty</source>
+                <target>A JSON value is expected.</target>
+            </trans-unit>
+            <trans-unit id="try.failed" resname="try.failed">
+                <source>try.failed</source>
+                <target>The preview could not be updated (HTTP %status%).</target>
+            </trans-unit>
+            <trans-unit id="try.network" resname="try.network">
+                <source>try.network</source>
+                <target>The server did not answer.</target>
+            </trans-unit>
+            <trans-unit id="try.module_failed" resname="try.module_failed">
+                <source>try.module_failed</source>
+                <target>This field could not be loaded.</target>
+            </trans-unit>
+            <trans-unit id="try.updated" resname="try.updated">
+                <source>try.updated</source>
+                <target>Preview updated.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

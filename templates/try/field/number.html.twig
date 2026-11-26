@@ -1,0 +1,1 @@
+<input type="number" id="{{ field.id }}" name="{{ field.name }}" step="{{ field.kind == 'integer' ? '1' : 'any' }}" value="{{ field.hasValue and field.value is not null ? field.value : '' }}" aria-describedby="{{ field.describedBy }}" autocomplete="off" data-try-control>

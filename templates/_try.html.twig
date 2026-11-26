@@ -1,0 +1,54 @@
+{#
+    The "Try" form of an example: the props of the component as fields, the example redrawn in its frame as they change.
+    Variables: `try` (TryPanel), `id` (the id of the example in the page).
+
+    Without JavaScript the form posts to the signed address with `_token`, in the frame of the example, and the "Show"
+    button is what sends it. The script hides that button and sends the values as JSON, 400 ms after the last keystroke.
+#}
+{% set try_id = id ~ '-try' %}
+<section class="showcase-try" aria-labelledby="{{ try_id }}-heading">
+    <h4 id="{{ try_id }}-heading">{{ 'try.title'|trans({}, 'UxShowcaseBundle') }}</h4>
+    <form
+        class="showcase-try-form" id="{{ try_id }}-form" method="post" action="{{ try.url }}" target="{{ try.frameName }}" autocomplete="off"
+        data-ux-showcase-try data-frame="{{ try.frameName }}" data-link-url="{{ try.linkUrl }}" data-token="{{ try.token }}"{% if try.expires %} data-expires="{{ try.expires }}"{% endif %}
+        data-message-json="{{ 'try.json_invalid'|trans({}, 'UxShowcaseBundle') }}"
+        data-message-json-empty="{{ 'try.json_empty'|trans({}, 'UxShowcaseBundle') }}"
+        data-message-failed="{{ 'try.failed'|trans({}, 'UxShowcaseBundle') }}"
+        data-message-network="{{ 'try.network'|trans({}, 'UxShowcaseBundle') }}"
+        data-message-module="{{ 'try.module_failed'|trans({}, 'UxShowcaseBundle') }}"
+        data-message-updated="{{ 'try.updated'|trans({}, 'UxShowcaseBundle') }}"
+    >
+        <input type="hidden" name="_token" value="{{ try.token }}">
+
+        {% for field in try.fields %}
+            <div class="showcase-try-field" data-try-field data-prop="{{ field.name }}" data-field-type="{{ field.type }}"{% if field.module %} data-module="{{ field.module }}"{% endif %}{% if field.nullable %} data-nullable{% endif %}{% if field.numeric %} data-numeric{% endif %}{% if field.sent %} data-sent{% endif %}{% if field.hasValue %} data-initial="{{ field.initial }}"{% endif %}>
+                <label for="{{ field.id }}">{{ field.name }}</label>
+                {% include field.template with {field: field, try: try} only %}
+                {% if field.prop.description %}<p class="showcase-try-hint" id="{{ field.hintId }}">{{ field.prop.description }}</p>{% endif %}
+                <p class="showcase-try-error" id="{{ field.errorId }}" data-try-error hidden></p>
+            </div>
+        {% endfor %}
+
+        {% if try.readOnly %}
+            <div class="showcase-try-readonly">
+                <h5>{{ 'try.readonly_title'|trans({}, 'UxShowcaseBundle') }}</h5>
+                <dl>
+                    {% for item in try.readOnly %}
+                        <dt><code>{{ item.prop.name }}</code> <code class="showcase-muted">{{ item.prop.type }}</code></dt>
+                        <dd>
+                            {% if item.hasValue %}<code>{{ item.value|ux_showcase_value }}</code>{% endif %}
+                            <span class="showcase-muted">{{ ('try.readonly.' ~ item.reason)|trans({'%type%': item.prop.type}, 'UxShowcaseBundle') }}</span>
+                        </dd>
+                    {% endfor %}
+                </dl>
+            </div>
+        {% endif %}
+
+        <p class="showcase-try-alert" role="alert" data-try-alert hidden></p>
+        <div class="showcase-try-actions">
+            <button type="submit" class="showcase-button" data-try-show>{{ 'try.show'|trans({}, 'UxShowcaseBundle') }}</button>
+            <button type="reset" class="showcase-button" data-try-reset>{{ 'try.reset'|trans({}, 'UxShowcaseBundle') }}</button>
+        </div>
+        <p class="showcase-visually-hidden" role="status" aria-live="polite" data-try-status></p>
+    </form>
+</section>

@@ -5,6 +5,7 @@
     templates/bundles/OpenStudioUxShowcaseBundle/component.html.twig):
     - header_actions: buttons in the header of the page; `actions` holds the registered ones
     - below_preview: under the frame of each example; `view` is the example, `component` its component (null on a documentation page)
+      The form to try other values (`view.try`, null for a free example) is beside the frame; see `_try.html.twig`
     - below_props: under the props table of each example, same variables
 #}
 {% extends '@OpenStudioUxShowcase/layout.html.twig' %}
@@ -76,16 +77,22 @@
                 </div>
 
                 <div role="tabpanel" id="{{ id }}-panel-preview" aria-labelledby="{{ id }}-tab-preview" tabindex="0">
-                    <div class="showcase-frame">
-                        <iframe
-                            title="{{ 'example.frame_title'|trans({'%example%': view.example.title}, 'UxShowcaseBundle') }}"
-                            src="{{ view.previewUrl }}"
-                            loading="lazy"
-                            style="width: {{ viewport_width ? viewport_width ~ 'px' : '100%' }}{% if view.height %}; height: {{ view.height }}px{% endif %}"
-                            {% if view.height %}data-fixed-height{% endif %}
-                        ></iframe>
+                    <div class="showcase-preview{% if view.try %} showcase-preview-with-try{% endif %}">
+                        <div class="showcase-preview-main">
+                            <div class="showcase-frame">
+                                <iframe
+                                    title="{{ 'example.frame_title'|trans({'%example%': view.example.title}, 'UxShowcaseBundle') }}"
+                                    src="{{ view.previewUrl }}"
+                                    {% if view.try %}name="{{ view.try.frameName }}"{% endif %}
+                                    loading="lazy"
+                                    style="width: {{ viewport_width ? viewport_width ~ 'px' : '100%' }}{% if view.height %}; height: {{ view.height }}px{% endif %}"
+                                    {% if view.height %}data-fixed-height{% endif %}
+                                ></iframe>
+                            </div>
+                            {% block below_preview %}{% endblock %}
+                        </div>
+                        {% if view.try %}{% include '@OpenStudioUxShowcase/_try.html.twig' with {try: view.try, id: id} only %}{% endif %}
                     </div>
-                    {% block below_preview %}{% endblock %}
                 </div>
 
                 <div role="tabpanel" id="{{ id }}-panel-code" aria-labelledby="{{ id }}-tab-code" tabindex="0">

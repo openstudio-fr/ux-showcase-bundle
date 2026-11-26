@@ -118,6 +118,58 @@
                 <source>preview.errors.title</source>
                 <target>Ces valeurs ne peuvent pas être prévisualisées</target>
             </trans-unit>
+            <trans-unit id="try.title" resname="try.title">
+                <source>try.title</source>
+                <target>Essayer</target>
+            </trans-unit>
+            <trans-unit id="try.show" resname="try.show">
+                <source>try.show</source>
+                <target>Afficher</target>
+            </trans-unit>
+            <trans-unit id="try.reset" resname="try.reset">
+                <source>try.reset</source>
+                <target>Réinitialiser</target>
+            </trans-unit>
+            <trans-unit id="try.none" resname="try.none">
+                <source>try.none</source>
+                <target>(aucune)</target>
+            </trans-unit>
+            <trans-unit id="try.readonly_title" resname="try.readonly_title">
+                <source>try.readonly_title</source>
+                <target>Non modifiables</target>
+            </trans-unit>
+            <trans-unit id="try.readonly.untyped" resname="try.readonly.untyped">
+                <source>try.readonly.untyped</source>
+                <target>Son type n'est pas déclaré : ajoutez-en un dans le template ou la classe pour l'essayer.</target>
+            </trans-unit>
+            <trans-unit id="try.readonly.type" resname="try.readonly.type">
+                <source>try.readonly.type</source>
+                <target>Ne peut pas s'écrire dans un formulaire : son type est %type%.</target>
+            </trans-unit>
+            <trans-unit id="try.json_invalid" resname="try.json_invalid">
+                <source>try.json_invalid</source>
+                <target>JSON invalide : %error%</target>
+            </trans-unit>
+            <trans-unit id="try.json_empty" resname="try.json_empty">
+                <source>try.json_empty</source>
+                <target>Une valeur JSON est attendue.</target>
+            </trans-unit>
+            <trans-unit id="try.failed" resname="try.failed">
+                <source>try.failed</source>
+                <target>L'aperçu n'a pas pu être mis à jour (HTTP %status%).</target>
+            </trans-unit>
+            <trans-unit id="try.network" resname="try.network">
+                <source>try.network</source>
+                <target>Le serveur n'a pas répondu.</target>
+            </trans-unit>
+            <trans-unit id="try.module_failed" resname="try.module_failed">
+                <source>try.module_failed</source>
+                <target>Ce champ n'a pas pu être chargé.</target>
+            </trans-unit>
+            <trans-unit id="try.updated" resname="try.updated">
+                <source>try.updated</source>
+                <target>Aperçu mis à jour.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
