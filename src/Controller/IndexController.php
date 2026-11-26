@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace OpenStudio\UxShowcaseBundle\Controller;
 
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
+use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Twig\Environment;
@@ -23,6 +24,7 @@ final readonly class IndexController
     public function __construct(
         private Environment $twig,
         private ShowcaseConfiguration $configuration,
+        private ShowcaseRegistry $registry,
     ) {
     }
 
@@ -30,8 +32,14 @@ final readonly class IndexController
     #[Route('/', name: 'ux_showcase_index', methods: ['GET'])]
     public function __invoke(): Response
     {
+        $libraries = [];
+        foreach ($this->registry->libraries() as $library) {
+            $libraries[] = ['library' => $library, 'groups' => $this->registry->groups($library->getName())];
+        }
+
         return new Response($this->twig->render('@OpenStudioUxShowcase/index.html.twig', [
             'configuration' => $this->configuration,
+            'libraries' => $libraries,
         ]));
     }
 }

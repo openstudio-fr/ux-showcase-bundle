@@ -6,6 +6,114 @@
                 <source>index.empty</source>
                 <target>Aucune bibliothèque de composants n'est enregistrée pour l'instant.</target>
             </trans-unit>
+            <trans-unit id="index.doc_page" resname="index.doc_page">
+                <source>index.doc_page</source>
+                <target>Documentation</target>
+            </trans-unit>
+            <trans-unit id="status.ready" resname="status.ready">
+                <source>status.ready</source>
+                <target>Prêt</target>
+            </trans-unit>
+            <trans-unit id="status.waiting" resname="status.waiting">
+                <source>status.waiting</source>
+                <target>En attente</target>
+            </trans-unit>
+            <trans-unit id="status.hidden" resname="status.hidden">
+                <source>status.hidden</source>
+                <target>Masqué</target>
+            </trans-unit>
+            <trans-unit id="nav.breadcrumb" resname="nav.breadcrumb">
+                <source>nav.breadcrumb</source>
+                <target>Fil d'Ariane</target>
+            </trans-unit>
+            <trans-unit id="nav.all" resname="nav.all">
+                <source>nav.all</source>
+                <target>Tous les composants</target>
+            </trans-unit>
+            <trans-unit id="controls.viewport" resname="controls.viewport">
+                <source>controls.viewport</source>
+                <target>Largeur</target>
+            </trans-unit>
+            <trans-unit id="controls.background" resname="controls.background">
+                <source>controls.background</source>
+                <target>Fond</target>
+            </trans-unit>
+            <trans-unit id="controls.default" resname="controls.default">
+                <source>controls.default</source>
+                <target>Par défaut</target>
+            </trans-unit>
+            <trans-unit id="tabs.label" resname="tabs.label">
+                <source>tabs.label</source>
+                <target>Vues de %example%</target>
+            </trans-unit>
+            <trans-unit id="tabs.preview" resname="tabs.preview">
+                <source>tabs.preview</source>
+                <target>Aperçu</target>
+            </trans-unit>
+            <trans-unit id="tabs.code" resname="tabs.code">
+                <source>tabs.code</source>
+                <target>Code</target>
+            </trans-unit>
+            <trans-unit id="tabs.props" resname="tabs.props">
+                <source>tabs.props</source>
+                <target>Props</target>
+            </trans-unit>
+            <trans-unit id="example.frame_title" resname="example.frame_title">
+                <source>example.frame_title</source>
+                <target>Aperçu de %example%</target>
+            </trans-unit>
+            <trans-unit id="props.caption" resname="props.caption">
+                <source>props.caption</source>
+                <target>Props de %component%</target>
+            </trans-unit>
+            <trans-unit id="props.name" resname="props.name">
+                <source>props.name</source>
+                <target>Nom</target>
+            </trans-unit>
+            <trans-unit id="props.type" resname="props.type">
+                <source>props.type</source>
+                <target>Type</target>
+            </trans-unit>
+            <trans-unit id="props.default" resname="props.default">
+                <source>props.default</source>
+                <target>Défaut</target>
+            </trans-unit>
+            <trans-unit id="props.description" resname="props.description">
+                <source>props.description</source>
+                <target>Description</target>
+            </trans-unit>
+            <trans-unit id="props.required" resname="props.required">
+                <source>props.required</source>
+                <target>Requis</target>
+            </trans-unit>
+            <trans-unit id="props.allowed" resname="props.allowed">
+                <source>props.allowed</source>
+                <target>Valeurs autorisées</target>
+            </trans-unit>
+            <trans-unit id="props.none" resname="props.none">
+                <source>props.none</source>
+                <target>aucun</target>
+            </trans-unit>
+            <trans-unit id="props.yes" resname="props.yes">
+                <source>props.yes</source>
+                <target>Oui</target>
+            </trans-unit>
+            <trans-unit id="props.no" resname="props.no">
+                <source>props.no</source>
+                <target>Non</target>
+            </trans-unit>
+            <trans-unit id="props.empty" resname="props.empty">
+                <source>props.empty</source>
+                <target>Ce composant ne documente aucune prop.</target>
+            </trans-unit>
+            <trans-unit id="blocks.title" resname="blocks.title">
+                <source>blocks.title</source>
+                <target>Blocs</target>
+            </trans-unit>
+            <trans-unit id="component.no_examples" resname="component.no_examples">
+                <source>component.no_examples</source>
+                <target>Ce composant n'a pas encore d'exemple.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

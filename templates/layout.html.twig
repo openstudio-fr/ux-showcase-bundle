@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="{{ app.request.locale|default('en') }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}{{ configuration.title }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ ux_showcase_asset('showcase.css') }}">
+    <script src="{{ ux_showcase_asset('showcase.js') }}" defer></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="showcase">
+    <header class="showcase-header">
+        {% if configuration.logo %}<img src="{{ configuration.logo }}" alt="">{% endif %}
+        <h1>{{ configuration.title }}</h1>
+        {% block header %}{% endblock %}
+    </header>
+    <main class="showcase-main">
+        {% block body %}{% endblock %}
+    </main>
+</body>
+</html>

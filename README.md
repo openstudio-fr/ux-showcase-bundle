@@ -62,10 +62,10 @@ ux_showcase:
         mobile: 375
         tablet: 768
         desktop: 1280
-    backgrounds:                 # preview backgrounds, name => CSS colour; replaces the default list
+    backgrounds:                 # preview backgrounds, replaces the default list; a CSS colour, or a colour with attributes
         light: '#f8f9fa'
         white: '#ffffff'
-        dark: '#212529'
+        dark: { color: '#212529', html_attributes: { data-bs-theme: dark } }
     access:
         role: null               # a Symfony role that opens the showcase outside debug
         service: null            # id of your own ShowcaseAccessInterface service
@@ -223,6 +223,112 @@ The wrapper is on unless a level turns it off.
   A live component needs a current request.
 - `ExampleCodeGenerator::generate($example)`: `<twig:App:Button label="Save" :disabled="true" />`, props in declared
   order; a free example gives its source.
+
+## Screens
+
+Every route sits under the prefix you imported them with, behind the access check (a 404 outside debug).
+
+| Name | Path | Screen |
+|---|---|---|
+| `ux_showcase_index` | `/` | libraries, then groups: components with a status badge (`ready`, `waiting`; `hidden` ones are absent) and documentation pages |
+| `ux_showcase_component` | `/{library}/{component}` | the examples of a component, each with the tabs Preview, Code and Props |
+| `ux_showcase_doc` | `/{library}/_docs/{slug}` | a documentation page: Preview and Code, no Props |
+| `ux_showcase_preview` | `/{library}/{component}/{slug}/preview` | the bare page of one example, loaded by its frame |
+| `ux_showcase_doc_preview` | `/{library}/_docs/{slug}/preview` | the bare page of a documentation page |
+| `ux_showcase_asset` | `/_assets/{file}` | the script and the style of the screens, served with cache headers |
+
+A component name keeps its `:` in the URL (`/_showcase/app/App:Form:Input`). The width and the background chosen on a
+component page are in its query string (`?viewport=mobile&background=dark`), so a link shares them. A background of
+`default` leaves each example its own. The Code tab is the generated `<twig:…>` snippet, or the source of a free
+example; the Props tab is the table of `ComponentDocumentation`, with the blocks. A free example has no Props tab.
+
+The scripts are standalone: nothing to register in the application (no Stimulus controller), and no inline script, so
+a strict content security policy lets them through. Tabs follow the ARIA pattern (arrow keys, Home, End) and every frame
+has a title. Without JavaScript every panel is shown and the choices are plain links.
+
+### Bare page
+
+A preview is an `<iframe>` on the bare page of the example: a Twig template per library, in which the host brings its
+own styles and scripts (AssetMapper, Encore or Vite: its template decides). The template is `bare:` of the library
+(`getBareTemplate()`), else the one of the bundle. A template must define the blocks `head_assets`, `body_attributes`
+and `content`, which is what extending the bundle one gives; a template without them is refused with a message that
+says so.
+
+```twig
+{# templates/showcase/bare.html.twig #}
+{% extends '@OpenStudioUxShowcase/bare.html.twig' %}
+
+{% block head_assets %}{{ importmap('app') }}{% endblock %}
+```
+
+Variables: `library`, `component` (`ComponentReference`, null for a documentation page), `example`, `content` (the
+rendered example, wrapper included, safe markup), `preview` (`ResolvedPreview`), `background` (the `Background` in force
+or null), `html_attributes` (what goes on `<html>`: the attributes of the background, its colour as a `style`, its name),
+`body_class`. The bundle default, which extends nothing:
+
+```twig
+<!doctype html>
+<html lang="{{ app.request.locale|default('en') }}"{% for name, value in html_attributes %} {{ name }}="{{ value }}"{% endfor %}>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ example.title }}</title>
+    {% block head_assets %}{% endblock %}
+</head>
+<body{% block body_attributes %}{% if body_class %} class="{{ body_class }}"{% endif %}{% endblock %}>
+{% block content %}{{ content }}{% endblock %}
+</body>
+</html>
+```
+
+The bundle adds, by a listener scoped to the two preview routes, a script before `</body>` that reports the height of
+the document and its background to the page around the frame (`postMessage`, same origin only), and it switches the
+profiler off for that response, so there is no debug toolbar in a frame. A frame follows the height of its content,
+except an example that sets `height`: a modal in fixed position has a document of zero height, so give it one
+(`options { height: 400 }`).
+
+A background is a CSS colour, or `{ color, html_attributes }` when the page needs more than a colour: a theme mode
+(`data-bs-theme="dark"`) is an attribute of `<html>`.
+
+### Extension points
+
+The component page has three Twig blocks, for a host or an add-on to fill. Override the template from
+`templates/bundles/OpenStudioUxShowcaseBundle/component.html.twig` and extend the original with `@!`:
+
+```twig
+{% extends '@!OpenStudioUxShowcase/component.html.twig' %}
+
+{% block header_actions %}{{ parent() }}...{% endblock %}   {# header of the page #}
+{% block below_preview %}...{% endblock %}                  {# under the frame of each example: `view`, `component` #}
+{% block below_props %}...{% endblock %}                    {# under the props table of each example #}
+```
+
+Buttons come from services implementing `OpenStudio\UxShowcaseBundle\Screen\ComponentActionInterface` (autoconfigured,
+tag `ux_showcase.action` with an optional `priority`). Each is asked once for the component (the header of the page,
+`$context->example` null) and once for each example; `isVisible()` says where it applies, `getTarget()` returns an
+`ActionTarget`: a link, or a form (POST, or hidden fields).
+
+```php
+interface ComponentActionInterface
+{
+    public function getName(): string;                          // unique, stable: data-action="..."
+    public function getLabel(): string;                         // already translated
+    public function isVisible(ActionContext $context): bool;    // library name, ComponentReference|null, Example|null
+    public function getTarget(ActionContext $context): ActionTarget; // url, method (GET|POST), hidden fields
+}
+```
+
+### Cache
+
+Outside debug the registry (components, examples) is built once and kept in a filesystem pool of the bundle under
+`kernel.cache_dir`: `cache:clear` empties it, so a deploy shows new examples. In debug it is rebuilt on every request.
+
+### Seeing it in a browser
+
+`tests/Fixtures/public/index.php` serves the test library at `/_showcase/` with debug on:
+`php -S 127.0.0.1:8000 tests/Fixtures/public/index.php`, or an `index.php` of your own at the root of the clone that
+requires it.
 
 ## Props
 

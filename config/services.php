@@ -12,7 +12,12 @@ declare(strict_types=1);
  */
 
 use OpenStudio\UxShowcaseBundle\Access\ShowcaseAccessInterface;
+use OpenStudio\UxShowcaseBundle\Controller\AssetController;
+use OpenStudio\UxShowcaseBundle\Controller\ComponentController;
+use OpenStudio\UxShowcaseBundle\Controller\DocPageController;
 use OpenStudio\UxShowcaseBundle\Controller\IndexController;
+use OpenStudio\UxShowcaseBundle\Controller\PreviewController;
+use OpenStudio\UxShowcaseBundle\EventListener\BarePageListener;
 use OpenStudio\UxShowcaseBundle\EventListener\ShowcaseAccessListener;
 use OpenStudio\UxShowcaseBundle\Example\ExampleCodeGenerator;
 use OpenStudio\UxShowcaseBundle\Example\ExampleRenderer;
@@ -23,24 +28,44 @@ use OpenStudio\UxShowcaseBundle\Props\ClassPropsReader;
 use OpenStudio\UxShowcaseBundle\Props\ComponentDocumentation;
 use OpenStudio\UxShowcaseBundle\Props\TemplatePropsReader;
 use OpenStudio\UxShowcaseBundle\Props\TemplateSourceReader;
+use OpenStudio\UxShowcaseBundle\Screen\ActionResolver;
+use OpenStudio\UxShowcaseBundle\Screen\Assets;
+use OpenStudio\UxShowcaseBundle\Screen\ExampleViewFactory;
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
+use OpenStudio\UxShowcaseBundle\Twig\ShowcaseScreenExtension;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $container): void {
     $services = $container->services();
 
-    $services->set(IndexController::class)
-        ->autowire()
-        ->tag('controller.service_arguments');
+    foreach ([IndexController::class, ComponentController::class, DocPageController::class, PreviewController::class, AssetController::class] as $controller) {
+        $services->set($controller)
+            ->autowire()
+            ->tag('controller.service_arguments');
+    }
 
     $services->set(ShowcaseAccessListener::class)
         ->args([service(ShowcaseAccessInterface::class)])
         ->tag('kernel.event_listener', ['event' => 'kernel.controller', 'method' => 'onController'])
         ->tag('kernel.event_listener', ['event' => 'kernel.response', 'method' => 'onResponse']);
+
+    $services->set(Assets::class)->args([service('router')]);
+    $services->set(ShowcaseScreenExtension::class)->args([service(Assets::class)])->tag('twig.extension');
+    // Before the profiler of the framework (kernel.response, -100): it must be off when it decides to collect.
+    $services->set(BarePageListener::class)
+        ->args([service(Assets::class), service('profiler')->nullOnInvalid()])
+        ->tag('kernel.event_listener', ['event' => 'kernel.request', 'method' => 'onRequest', 'priority' => 8])
+        ->tag('kernel.event_listener', ['event' => 'kernel.response', 'method' => 'onResponse']);
+
+    $services->set(ActionResolver::class)->args([tagged_iterator('ux_showcase.action')]);
+    $services->set(ExampleViewFactory::class)
+        ->args([service(ExampleCodeGenerator::class), service(PreviewOptionsResolver::class), service(ActionResolver::class), service('router')]);
 
     $services->set(ComponentCatalog::class)
         ->args([service('ux.twig_component.component_factory'), service('twig.loader.native_filesystem'), []]);
@@ -50,8 +75,12 @@ return static function (ContainerConfigurator $container): void {
         ->args([[], []])
         ->tag('ux_showcase.example_provider');
 
+    // Outside debug the registry keeps its build here; `cache:clear` empties it.
+    $services->set('ux_showcase.cache', FilesystemAdapter::class)
+        ->args(['ux_showcase', 0, '%kernel.cache_dir%/ux_showcase']);
+
     $services->set(ShowcaseRegistry::class)
-        ->args([tagged_iterator('ux_showcase.library'), tagged_iterator('ux_showcase.example_provider')]);
+        ->args([tagged_iterator('ux_showcase.library'), tagged_iterator('ux_showcase.example_provider'), service('ux_showcase.cache'), param('kernel.debug')]);
 
     // The template first: it holds the descriptions; the class then refines the types.
     $services->set(TemplateSourceReader::class)->args([service('twig')]);

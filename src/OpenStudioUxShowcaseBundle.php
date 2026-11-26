@@ -28,6 +28,8 @@ use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
 use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
 use OpenStudio\UxShowcaseBundle\Library\ConfiguredLibrary;
 use OpenStudio\UxShowcaseBundle\Props\PropsReaderInterface;
+use OpenStudio\UxShowcaseBundle\Screen\Background;
+use OpenStudio\UxShowcaseBundle\Screen\ComponentActionInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
@@ -60,7 +62,7 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
      *     title: string,
      *     logo: string|null,
      *     viewports: array<string, int|null>,
-     *     backgrounds: array<string, string>,
+     *     backgrounds: array<string, array{color: string, html_attributes: array<string, string|int|float|bool>}>,
      *     fixtures_directory: string|null,
      *     preview: array{background: string|null, body_class: string|null, wrapper: bool, height: int|null},
      *     libraries: array<string, array{label: string|null, prefix: string|null, examples: string|null, groups: list<string>, wrapper: string|null, bare: string|null, preview: array{background: string|null, body_class: string|null, wrapper: bool|null, height: int|null}, statuses: array<string, ComponentStatus>}>,
@@ -72,12 +74,17 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
         $container->import('../config/services.php');
 
         $services = $container->services();
+        $backgrounds = [];
+        foreach ($config['backgrounds'] as $name => $background) {
+            $backgrounds[$name] = inline_service(Background::class)->args([$name, $background['color'], $background['html_attributes']]);
+        }
         $services->set(ShowcaseConfiguration::class)
-            ->args([$config['title'], $config['logo'], $config['viewports'], $config['backgrounds'], inline_service(PreviewOptions::class)->args(array_values($config['preview']))]);
+            ->args([$config['title'], $config['logo'], $config['viewports'], $backgrounds, inline_service(PreviewOptions::class)->args(array_values($config['preview']))]);
         $services->set(FixtureLoader::class)->args([$config['fixtures_directory']]);
 
         $builder->registerForAutoconfiguration(ComponentLibraryInterface::class)->addTag('ux_showcase.library');
         $builder->registerForAutoconfiguration(PropsReaderInterface::class)->addTag('ux_showcase.props_reader');
+        $builder->registerForAutoconfiguration(ComponentActionInterface::class)->addTag('ux_showcase.action');
         $builder->registerForAutoconfiguration(ExampleProviderInterface::class)->addTag('ux_showcase.example_provider');
         $builder->registerAttributeForAutoconfiguration(
             AsShowcaseExample::class,

@@ -45,4 +45,24 @@ final class TranslationTest extends TestCase
         yield 'english' => ['en', 'No component library is registered yet.'];
         yield 'french' => ['fr', "Aucune bibliothèque de composants n'est enregistrée pour l'instant."];
     }
+
+    public function testEveryEnglishKeyHasAFrenchTranslation(): void
+    {
+        $keys = static function (string $locale): array {
+            $xml = simplexml_load_file(__DIR__.'/../translations/UxShowcaseBundle.'.$locale.'.xlf');
+            self::assertNotFalse($xml);
+            $xml->registerXPathNamespace('x', 'urn:oasis:names:tc:xliff:document:1.2');
+            $ids = [];
+            foreach ($xml->xpath('//x:trans-unit') ?: [] as $unit) {
+                self::assertNotSame('', trim((string) $unit->target), (string) $unit['id']);
+                $ids[] = (string) $unit['id'];
+            }
+            sort($ids);
+
+            return $ids;
+        };
+
+        self::assertSame($keys('en'), $keys('fr'));
+        self::assertContains('tabs.props', $keys('en'));
+    }
 }

@@ -1,26 +1,32 @@
-<!doctype html>
-<html lang="{{ app.request.locale|default('en') }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex, nofollow">
-    <title>{{ configuration.title }}</title>
-    {# Inline on purpose: the showcase must not depend on the asset pipeline of the host. #}
-    <style>
-        body { margin: 0; font-family: system-ui, sans-serif; color: #212529; background: #f8f9fa; }
-        header { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem; background: #fff; border-bottom: 1px solid #dee2e6; }
-        header img { height: 2rem; }
-        h1 { margin: 0; font-size: 1.25rem; }
-        main { padding: 1.5rem; }
-    </style>
-</head>
-<body>
-    <header>
-        {% if configuration.logo %}<img src="{{ configuration.logo }}" alt="">{% endif %}
-        <h1>{{ configuration.title }}</h1>
-    </header>
-    <main>
+{% extends '@OpenStudioUxShowcase/layout.html.twig' %}
+
+{% block body %}
+    {% for entry in libraries %}
+        {% set library = entry.library %}
+        <section class="showcase-library" aria-labelledby="library-{{ library.name }}">
+            <h2 id="library-{{ library.name }}">{{ library.label }}</h2>
+            {% for group in entry.groups %}
+                <section class="showcase-group">
+                    <h3>{{ group.name }}</h3>
+                    <ul class="showcase-list">
+                        {% for component in group.components %}
+                            <li>
+                                <a href="{{ path('ux_showcase_component', {library: library.name, component: component.name}) }}">{{ component.label }}</a>
+                                <code class="showcase-name">{{ component.name }}</code>
+                                <span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
+                            </li>
+                        {% endfor %}
+                        {% for page in group.docPages %}
+                            <li>
+                                <a href="{{ path('ux_showcase_doc', {library: library.name, slug: page.slug}) }}">{{ page.title }}</a>
+                                <span class="showcase-badge showcase-badge-doc">{{ 'index.doc_page'|trans({}, 'UxShowcaseBundle') }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endfor %}
+        </section>
+    {% else %}
         <p>{{ 'index.empty'|trans({}, 'UxShowcaseBundle') }}</p>
-    </main>
-</body>
-</html>
+    {% endfor %}
+{% endblock %}

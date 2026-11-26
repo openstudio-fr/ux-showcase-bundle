@@ -87,7 +87,7 @@ final class LibraryRegistryTest extends TestCase
         $registry = $this->registry();
 
         $button = $registry->examples('demo', 'Demo:Button');
-        self::assertSame(['primary', 'danger', 'with-icon'], array_map(static fn ($example): string => $example->slug, $button));
+        self::assertSame(['primary', 'danger', 'with-icon', 'in-a-toolbar'], array_map(static fn ($example): string => $example->slug, $button));
         self::assertSame('Primary', $button[0]->title);
         self::assertSame('Dangerous action', $button[1]->title);
         self::assertSame(['label' => 'Delete', 'variant' => 'danger'], $button[1]->props);

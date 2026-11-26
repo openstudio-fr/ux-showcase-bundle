@@ -36,6 +36,7 @@ final class Configuration
                     'examples' => __DIR__.'/examples',
                     'groups' => ['General', 'Form', 'Layout', 'Foundations'],
                     'wrapper' => 'showcase/wrapper.html.twig',
+                    'bare' => 'showcase/bare.html.twig',
                     'statuses' => ['Demo:Experimental:Chart' => 'waiting', 'Demo:Legacy:Old' => 'hidden'],
                 ],
             ],
