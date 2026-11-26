@@ -22,12 +22,14 @@ use OpenStudio\UxShowcaseBundle\Library\ComponentGroup;
 use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
 use OpenStudio\UxShowcaseBundle\Library\ComponentReference;
 use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
+use Psr\Cache\CacheItemPoolInterface;
 
 /**
  * Libraries, their components, their examples. Built on first use, and validated as a whole: a duplicate slug or an
  * example for an unknown component fails here, with a message that names it.
  *
  * @phpstan-type Entry array{library: ComponentLibraryInterface, components: array<string, ComponentReference>}
+ * @phpstan-type Data array{components: array<string, array<string, ComponentReference>>, examples: array<string, array<string, list<Example>>>, docPages: array<string, list<Example>>}
  *
  * @api
  */
@@ -45,10 +47,13 @@ final class ShowcaseRegistry
     /**
      * @param iterable<ComponentLibraryInterface> $libraryServices
      * @param iterable<ExampleProviderInterface>  $sharedExampleProviders
+     * @param CacheItemPoolInterface|null         $cache                  keeps the result of the build outside debug
      */
     public function __construct(
         private readonly iterable $libraryServices,
         private readonly iterable $sharedExampleProviders,
+        private readonly ?CacheItemPoolInterface $cache = null,
+        private readonly bool $debug = false,
     ) {
     }
 
@@ -158,31 +163,83 @@ final class ShowcaseRegistry
             return $this->libraries;
         }
 
-        $this->examples = $this->docPages = [];
-        $loaded = [];
+        $services = [];
         foreach ($this->libraryServices as $library) {
             $name = $library->getName();
             if (1 !== preg_match(Example::SLUG_PATTERN, $name)) {
                 throw new ShowcaseException(\sprintf('The library name "%s" is not valid: lowercase letters, digits and single dashes only.', $name));
             }
-            if (isset($loaded[$name])) {
+            if (isset($services[$name])) {
                 throw new ShowcaseException(\sprintf('The library "%s" is registered twice.', $name));
             }
+            $services[$name] = $library;
+        }
+        // The order of tagged services depends on the container: libraries are listed by name.
+        ksort($services);
 
-            $components = [];
-            foreach ($library->getComponents() as $reference) {
-                if (isset($components[$reference->name])) {
-                    throw new ShowcaseException(\sprintf('The component "%s" is listed twice by the library "%s".', $reference->name, $name));
-                }
-                $components[$reference->name] = $reference;
-            }
-            $loaded[$name] = ['library' => $library, 'components' => $components];
+        $data = $this->cached($services);
+        $this->examples = $data['examples'];
+        $this->docPages = $data['docPages'];
+
+        $loaded = [];
+        foreach ($services as $name => $library) {
+            $loaded[$name] = ['library' => $library, 'components' => $data['components'][$name]];
         }
 
-        foreach ($loaded as $name => $entry) {
-            foreach ($entry['library']->getExampleProviders() as $provider) {
+        return $this->libraries = $loaded;
+    }
+
+    /**
+     * The expensive part (scanning the components, parsing the example files) is kept in the cache pool outside debug;
+     * in debug it is always rebuilt, so an edited example shows at once. `cache:clear` empties it.
+     *
+     * @param array<string, ComponentLibraryInterface> $services
+     *
+     * @return Data
+     */
+    private function cached(array $services): array
+    {
+        if (null === $this->cache || $this->debug) {
+            return $this->build($services);
+        }
+
+        $key = 'registry_'.hash('xxh3', implode("\0", array_map(static fn (ComponentLibraryInterface $library): string => $library::class.':'.$library->getName(), $services)));
+        $item = $this->cache->getItem($key);
+        $data = $item->get();
+        if ($item->isHit() && \is_array($data)) {
+            /** @var Data $data */
+            return $data;
+        }
+
+        $data = $this->build($services);
+        $this->cache->save($item->set($data));
+
+        return $data;
+    }
+
+    /**
+     * @param array<string, ComponentLibraryInterface> $services
+     *
+     * @return Data
+     */
+    private function build(array $services): array
+    {
+        $this->examples = $this->docPages = [];
+        $components = [];
+        foreach ($services as $name => $library) {
+            $components[$name] = [];
+            foreach ($library->getComponents() as $reference) {
+                if (isset($components[$name][$reference->name])) {
+                    throw new ShowcaseException(\sprintf('The component "%s" is listed twice by the library "%s".', $reference->name, $name));
+                }
+                $components[$name][$reference->name] = $reference;
+            }
+        }
+
+        foreach ($services as $name => $library) {
+            foreach ($library->getExampleProviders() as $provider) {
                 foreach ($provider->getExamples() as $example) {
-                    if (null !== $example->component && !isset($entry['components'][$example->component])) {
+                    if (null !== $example->component && !isset($components[$name][$example->component])) {
                         throw UnknownComponentException::forExample($example->slug, $example->component, $name);
                     }
                     $this->add($name, $example);
@@ -196,8 +253,8 @@ final class ShowcaseRegistry
                     throw new ShowcaseException(\sprintf('The example "%s" has no component and comes from a shared provider: a documentation page belongs to one library, declare it in its provider.', $example->slug));
                 }
                 $listed = false;
-                foreach ($loaded as $name => $entry) {
-                    if (isset($entry['components'][$example->component])) {
+                foreach ($components as $name => $references) {
+                    if (isset($references[$example->component])) {
                         $this->add($name, $example);
                         $listed = true;
                     }
@@ -208,10 +265,7 @@ final class ShowcaseRegistry
             }
         }
 
-        // The order of tagged services depends on the container: libraries are listed by name.
-        ksort($loaded);
-
-        return $this->libraries = $loaded;
+        return ['components' => $components, 'examples' => $this->examples, 'docPages' => $this->docPages];
     }
 
     private function add(string $library, Example $example): void

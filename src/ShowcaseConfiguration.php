@@ -14,13 +14,14 @@ declare(strict_types=1);
 namespace OpenStudio\UxShowcaseBundle;
 
 use OpenStudio\UxShowcaseBundle\Example\PreviewOptions;
+use OpenStudio\UxShowcaseBundle\Screen\Background;
 
 final readonly class ShowcaseConfiguration
 {
     /**
-     * @param array<string, int|null> $viewports   name => width in pixels, null for a responsive preview
-     * @param array<string, string>   $backgrounds name => CSS colour
-     * @param PreviewOptions          $preview     last level of the preview options, below every library
+     * @param array<string, int|null>   $viewports   name => width in pixels, null for a responsive preview
+     * @param array<string, Background> $backgrounds name => background, in display order
+     * @param PreviewOptions            $preview     last level of the preview options, below every library
      */
     public function __construct(
         public string $title,

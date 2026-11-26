@@ -1,0 +1,153 @@
+{#
+    The page of a component, and of a documentation page (no component, one free example).
+
+    Blocks a host or an add-on overrides (extend '@!OpenStudioUxShowcase/component.html.twig' from
+    templates/bundles/OpenStudioUxShowcaseBundle/component.html.twig):
+    - header_actions: buttons in the header of the page; `actions` holds the registered ones
+    - below_preview: under the frame of each example; `view` is the example, `component` its component (null on a documentation page)
+    - below_props: under the props table of each example, same variables
+#}
+{% extends '@OpenStudioUxShowcase/layout.html.twig' %}
+
+{% set heading = component ? component.label : views[0].example.title %}
+{% set viewport_width = configuration.viewports[state.viewport] %}
+
+{% block title %}{{ heading }} - {{ configuration.title }}{% endblock %}
+
+{% block body %}
+    <nav class="showcase-breadcrumb" aria-label="{{ 'nav.breadcrumb'|trans({}, 'UxShowcaseBundle') }}">
+        <a href="{{ path('ux_showcase_index') }}">{{ 'nav.all'|trans({}, 'UxShowcaseBundle') }}</a>
+        <span aria-hidden="true">/</span>
+        <span>{{ library.label }}</span>
+    </nav>
+
+    <div class="showcase-page-head">
+        <h2>{{ heading }}</h2>
+        {% if component %}
+            <code class="showcase-name">{{ component.name }}</code>
+            <span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
+        {% endif %}
+        <div class="showcase-actions">
+            {% block header_actions %}
+                {% for action in actions %}{% include '@OpenStudioUxShowcase/_action.html.twig' %}{% endfor %}
+            {% endblock %}
+        </div>
+    </div>
+    {% if documentation and documentation.description %}<p class="showcase-description">{{ documentation.description }}</p>{% endif %}
+
+    <div class="showcase-controls" data-ux-showcase-controls>
+        <div role="group" aria-labelledby="controls-viewport">
+            <span id="controls-viewport" class="showcase-controls-label">{{ 'controls.viewport'|trans({}, 'UxShowcaseBundle') }}</span>
+            {% for key, width in configuration.viewports %}
+                <a class="showcase-choice" href="{{ path(self_route, self_parameters|merge({viewport: key, background: state.background})) }}" data-viewport="{{ key }}" data-width="{{ width }}"{% if key == state.viewport %} aria-current="true"{% endif %}>
+                    {{ key|capitalize }}{% if width %} <span class="showcase-muted">{{ width }}px</span>{% endif %}
+                </a>
+            {% endfor %}
+        </div>
+        <div role="group" aria-labelledby="controls-background">
+            <span id="controls-background" class="showcase-controls-label">{{ 'controls.background'|trans({}, 'UxShowcaseBundle') }}</span>
+            <a class="showcase-choice" href="{{ path(self_route, self_parameters|merge({viewport: state.viewport})) }}" data-background=""{% if state.background is null %} aria-current="true"{% endif %}>{{ 'controls.default'|trans({}, 'UxShowcaseBundle') }}</a>
+            {% for key, background in configuration.backgrounds %}
+                <a class="showcase-choice" href="{{ path(self_route, self_parameters|merge({viewport: state.viewport, background: key})) }}" data-background="{{ key }}"{% if key == state.background %} aria-current="true"{% endif %}>
+                    <span class="showcase-swatch" style="background-color: {{ background.color }}"></span>{{ key|capitalize }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% for view in views %}
+        {% set id = 'example-' ~ view.example.slug %}
+        {% set has_props = component is not null and not view.example.free %}
+        <article class="showcase-example" id="{{ id }}" aria-labelledby="{{ id }}-title">
+            <header class="showcase-example-head">
+                <h3 id="{{ id }}-title"><a href="#{{ id }}">{{ view.example.title }}</a></h3>
+                <div class="showcase-actions">
+                    {% for action in view.actions %}{% include '@OpenStudioUxShowcase/_action.html.twig' %}{% endfor %}
+                </div>
+            </header>
+
+            <div class="showcase-tabs" data-ux-showcase-tabs>
+                <div role="tablist" aria-label="{{ 'tabs.label'|trans({'%example%': view.example.title}, 'UxShowcaseBundle') }}">
+                    <button type="button" role="tab" id="{{ id }}-tab-preview" aria-controls="{{ id }}-panel-preview" aria-selected="true" tabindex="0">{{ 'tabs.preview'|trans({}, 'UxShowcaseBundle') }}</button>
+                    <button type="button" role="tab" id="{{ id }}-tab-code" aria-controls="{{ id }}-panel-code" aria-selected="false" tabindex="-1">{{ 'tabs.code'|trans({}, 'UxShowcaseBundle') }}</button>
+                    {% if has_props %}
+                        <button type="button" role="tab" id="{{ id }}-tab-props" aria-controls="{{ id }}-panel-props" aria-selected="false" tabindex="-1">{{ 'tabs.props'|trans({}, 'UxShowcaseBundle') }}</button>
+                    {% endif %}
+                </div>
+
+                <div role="tabpanel" id="{{ id }}-panel-preview" aria-labelledby="{{ id }}-tab-preview" tabindex="0">
+                    <div class="showcase-frame">
+                        <iframe
+                            title="{{ 'example.frame_title'|trans({'%example%': view.example.title}, 'UxShowcaseBundle') }}"
+                            src="{{ view.previewUrl }}"
+                            loading="lazy"
+                            style="width: {{ viewport_width ? viewport_width ~ 'px' : '100%' }}{% if view.height %}; height: {{ view.height }}px{% endif %}"
+                            {% if view.height %}data-fixed-height{% endif %}
+                        ></iframe>
+                    </div>
+                    {% block below_preview %}{% endblock %}
+                </div>
+
+                <div role="tabpanel" id="{{ id }}-panel-code" aria-labelledby="{{ id }}-tab-code" tabindex="0">
+                    <pre class="showcase-code"><code>{{ view.code }}</code></pre>
+                </div>
+
+                {% if has_props %}
+                    <div role="tabpanel" id="{{ id }}-panel-props" aria-labelledby="{{ id }}-tab-props" tabindex="0">
+                        {% if documentation.props %}
+                            <table class="showcase-table">
+                                <caption class="showcase-visually-hidden">{{ 'props.caption'|trans({'%component%': component.name}, 'UxShowcaseBundle') }}</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">{{ 'props.name'|trans({}, 'UxShowcaseBundle') }}</th>
+                                        <th scope="col">{{ 'props.type'|trans({}, 'UxShowcaseBundle') }}</th>
+                                        <th scope="col">{{ 'props.default'|trans({}, 'UxShowcaseBundle') }}</th>
+                                        <th scope="col">{{ 'props.description'|trans({}, 'UxShowcaseBundle') }}</th>
+                                        <th scope="col">{{ 'props.required'|trans({}, 'UxShowcaseBundle') }}</th>
+                                        <th scope="col">{{ 'props.allowed'|trans({}, 'UxShowcaseBundle') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for prop in documentation.props %}
+                                        <tr>
+                                            <th scope="row"><code>{{ prop.name }}</code></th>
+                                            <td><code>{{ prop.type }}</code></td>
+                                            <td>{% if prop.hasDefault %}<code>{{ prop.default|ux_showcase_value }}</code>{% else %}<span class="showcase-muted">{{ 'props.none'|trans({}, 'UxShowcaseBundle') }}</span>{% endif %}</td>
+                                            <td>{{ prop.description }}</td>
+                                            <td>{{ (prop.required ? 'props.yes' : 'props.no')|trans({}, 'UxShowcaseBundle') }}</td>
+                                            <td>{% for value in prop.allowedValues ?? [] %}<code>{{ value|ux_showcase_value }}</code>{% if not loop.last %} {% endif %}{% endfor %}</td>
+                                        </tr>
+                                        {% for field in prop.fields %}
+                                            <tr class="showcase-field">
+                                                <th scope="row"><code>{{ prop.name }}.{{ field.name }}</code></th>
+                                                <td><code>{{ field.type }}</code></td>
+                                                <td></td>
+                                                <td>{{ field.description }}</td>
+                                                <td></td>
+                                                <td></td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <p class="showcase-muted">{{ 'props.empty'|trans({}, 'UxShowcaseBundle') }}</p>
+                        {% endif %}
+
+                        {% if documentation.blocks %}
+                            <h4>{{ 'blocks.title'|trans({}, 'UxShowcaseBundle') }}</h4>
+                            <ul class="showcase-blocks">
+                                {% for block in documentation.blocks %}
+                                    <li><code>{{ block.name }}</code>{% if block.description %} <span class="showcase-muted">{{ block.description }}</span>{% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% block below_props %}{% endblock %}
+                    </div>
+                {% endif %}
+            </div>
+        </article>
+    {% else %}
+        <p class="showcase-muted">{{ 'component.no_examples'|trans({}, 'UxShowcaseBundle') }}</p>
+    {% endfor %}
+{% endblock %}

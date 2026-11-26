@@ -1,0 +1,9 @@
+{# One action button: a link, or a form when the target posts or carries fields. `action` is a ResolvedAction. #}
+{% if action.target.form %}
+    <form class="showcase-action-form" method="{{ action.target.method|lower }}" action="{{ action.target.url }}">
+        {% for name, value in action.target.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+        <button type="submit" class="showcase-button" data-action="{{ action.name }}">{{ action.label }}</button>
+    </form>
+{% else %}
+    <a class="showcase-button" href="{{ action.target.url }}" data-action="{{ action.name }}">{{ action.label }}</a>
+{% endif %}

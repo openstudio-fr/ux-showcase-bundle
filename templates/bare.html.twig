@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="{{ app.request.locale|default('en') }}"{% for name, value in html_attributes %} {{ name }}="{{ value }}"{% endfor %}>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ example.title }}</title>
+    {% block head_assets %}{% endblock %}
+</head>
+<body{% block body_attributes %}{% if body_class %} class="{{ body_class }}"{% endif %}{% endblock %}>
+{% block content %}{{ content }}{% endblock %}
+</body>
+</html>
