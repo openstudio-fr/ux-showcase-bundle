@@ -4,7 +4,7 @@ A showcase of Twig components, served by the application itself: browse the comp
 examples at several widths and on several backgrounds, read their props and their code, and try them with other
 values. It replaces Storybook in Symfony projects, with no Node server.
 
-Status: in development, not released. The first version is tracked in issue #1.
+Status: 0.x. The public API may still change between minor versions.
 
 ## What the first version does
 
