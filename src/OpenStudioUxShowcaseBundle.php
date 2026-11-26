@@ -99,6 +99,11 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
                     'slug' => $attribute->slug,
                     'title' => $attribute->title,
                     'content' => $attribute->content,
+                    'background' => $attribute->background,
+                    'body_class' => $attribute->bodyClass,
+                    'wrapper' => $attribute->wrapper,
+                    'height' => $attribute->height,
+                    'needs_data' => $attribute->needsData,
                 ]);
             },
         );

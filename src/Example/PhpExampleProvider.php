@@ -21,7 +21,7 @@ use Psr\Container\ContainerInterface;
 final readonly class PhpExampleProvider implements ExampleProviderInterface
 {
     /**
-     * @param list<array{service: string, method: string, component: string, slug: string, title: string|null, content: string|null}> $definitions
+     * @param list<array{service: string, method: string, component: string, slug: string, title: string|null, content: string|null, background: string|null, body_class: string|null, wrapper: bool|null, height: int|null, needs_data: bool|null}> $definitions
      */
     public function __construct(
         private ContainerInterface $examples,
@@ -39,7 +39,18 @@ final readonly class PhpExampleProvider implements ExampleProviderInterface
             }
 
             /** @var array<string, mixed> $props */
-            yield new Example($definition['component'], $definition['slug'], $definition['title'], $props, $definition['content']);
+            try {
+                yield new Example(
+                    component: $definition['component'],
+                    slug: $definition['slug'],
+                    title: $definition['title'],
+                    props: $props,
+                    content: $definition['content'],
+                    preview: new PreviewOptions($definition['background'], $definition['body_class'], $definition['wrapper'], $definition['height'], $definition['needs_data']),
+                );
+            } catch (\InvalidArgumentException $exception) {
+                throw new \InvalidArgumentException(\sprintf('The example "%s" of the component "%s": %s', $definition['slug'], $definition['component'], $exception->getMessage()), 0, $exception);
+            }
         }
     }
 }

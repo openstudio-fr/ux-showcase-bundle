@@ -287,6 +287,13 @@ final readonly class ArticleCard
 }
 ```
 
+The attribute takes the preview options of a Twig example as named arguments: `background`, `bodyClass`, `wrapper`,
+`height`, `needsData`. Left out, an option is not decided here and the next level (component, library, global) answers.
+
+```php
+#[AsShowcaseExample(component: 'Demo:Layout:Card', slug: 'article', bodyClass: 'bg-light p-4', height: 320, needsData: true)]
+```
+
 An example of a component that no library lists, a duplicate slug, a prop that is not plain data: each fails when the
 registry is first used, with a message that names it. Another source of examples implements
 `ExampleProviderInterface`: registered as a service, it feeds every library that lists the component of an example;
@@ -657,6 +664,7 @@ render in a CI without those: mark it `needs_data` and the command skips it with
   for all; the first level that sets it wins, like the other preview options (an example can set `false`);
 - for some components of a library whose example files you do not own (a vendor kit): list them in the library,
   `ux_showcase.libraries.<name>.needs_data: ['Flexy:Cart', 'Flexy:Form:Address']`;
+- on a PHP example: `#[AsShowcaseExample(component: '…', slug: '…', needsData: true)]`;
 - in PHP: `new PreviewOptions(needsData: true)` on an `Example`, or `ComponentReference::$preview` for a component of
   a library that implements `ComponentLibraryInterface`; an adapter that feeds examples through an
   `ExampleProviderInterface` sets it on the examples it yields.

@@ -37,7 +37,7 @@ final class ShowcasePass implements CompilerPassInterface
         foreach ($container->findTaggedServiceIds(self::EXAMPLE_TAG) as $id => $tags) {
             $references[$id] = new Reference($id);
             foreach ($tags as $tag) {
-                /** @var array{method: string, component: string, slug: string, title?: string|null, content?: string|null} $tag */
+                /** @var array{method: string, component: string, slug: string, title?: string|null, content?: string|null, background?: string|null, body_class?: string|null, wrapper?: bool|null, height?: int|null, needs_data?: bool|null} $tag */
                 $definitions[] = [
                     'service' => $id,
                     'method' => $tag['method'],
@@ -45,6 +45,11 @@ final class ShowcasePass implements CompilerPassInterface
                     'slug' => $tag['slug'],
                     'title' => $tag['title'] ?? null,
                     'content' => $tag['content'] ?? null,
+                    'background' => $tag['background'] ?? null,
+                    'body_class' => $tag['body_class'] ?? null,
+                    'wrapper' => $tag['wrapper'] ?? null,
+                    'height' => $tag['height'] ?? null,
+                    'needs_data' => $tag['needs_data'] ?? null,
                 ];
             }
         }
