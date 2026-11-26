@@ -1,0 +1,7 @@
+{
+    "title": "From a fixture",
+    "items": [
+        {"label": "Book", "meta": {"price": 12.5}},
+        {"label": "Pen", "meta": {"price": 1.2}}
+    ]
+}

@@ -17,11 +17,24 @@ use OpenStudio\UxShowcaseBundle\Access\DebugShowcaseAccess;
 use OpenStudio\UxShowcaseBundle\Access\RoleShowcaseAccess;
 use OpenStudio\UxShowcaseBundle\Access\ShowcaseAccessInterface;
 use OpenStudio\UxShowcaseBundle\DependencyInjection\Compiler\RequireSecurityForRolePass;
+use OpenStudio\UxShowcaseBundle\DependencyInjection\Compiler\ShowcasePass;
+use OpenStudio\UxShowcaseBundle\Example\Attribute\AsShowcaseExample;
+use OpenStudio\UxShowcaseBundle\Example\ExampleProviderInterface;
+use OpenStudio\UxShowcaseBundle\Example\FixtureLoader;
+use OpenStudio\UxShowcaseBundle\Example\PreviewOptions;
+use OpenStudio\UxShowcaseBundle\Example\TwigExampleFileProvider;
+use OpenStudio\UxShowcaseBundle\Library\ComponentCatalog;
+use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
+use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
+use OpenStudio\UxShowcaseBundle\Library\ConfiguredLibrary;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
+use Symfony\Component\DependencyInjection\ChildDefinition;
+use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\inline_service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
@@ -32,6 +45,8 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(new RequireSecurityForRolePass());
+        // After TwigComponentPass (priority 0), which sets the class map of the components.
+        $container->addCompilerPass(new ShowcasePass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, -10);
     }
 
     public function configure(DefinitionConfigurator $definition): void
@@ -45,6 +60,9 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
      *     logo: string|null,
      *     viewports: array<string, int|null>,
      *     backgrounds: array<string, string>,
+     *     fixtures_directory: string|null,
+     *     preview: array{background: string|null, body_class: string|null, wrapper: bool, height: int|null},
+     *     libraries: array<string, array{label: string|null, prefix: string|null, examples: string|null, groups: list<string>, wrapper: string|null, bare: string|null, preview: array{background: string|null, body_class: string|null, wrapper: bool|null, height: int|null}, statuses: array<string, ComponentStatus>}>,
      *     access: array{role: string|null, service: string|null},
      * } $config
      */
@@ -54,7 +72,46 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
 
         $services = $container->services();
         $services->set(ShowcaseConfiguration::class)
-            ->args([$config['title'], $config['logo'], $config['viewports'], $config['backgrounds']]);
+            ->args([$config['title'], $config['logo'], $config['viewports'], $config['backgrounds'], inline_service(PreviewOptions::class)->args(array_values($config['preview']))]);
+        $services->set(FixtureLoader::class)->args([$config['fixtures_directory']]);
+
+        $builder->registerForAutoconfiguration(ComponentLibraryInterface::class)->addTag('ux_showcase.library');
+        $builder->registerForAutoconfiguration(ExampleProviderInterface::class)->addTag('ux_showcase.example_provider');
+        $builder->registerAttributeForAutoconfiguration(
+            AsShowcaseExample::class,
+            static function (ChildDefinition $definition, AsShowcaseExample $attribute, \Reflector $reflector): void {
+                $definition->addTag(ShowcasePass::EXAMPLE_TAG, [
+                    'method' => $reflector instanceof \ReflectionMethod ? $reflector->getName() : '__invoke',
+                    'component' => $attribute->component,
+                    'slug' => $attribute->slug,
+                    'title' => $attribute->title,
+                    'content' => $attribute->content,
+                ]);
+            },
+        );
+
+        foreach ($config['libraries'] as $name => $library) {
+            $providers = [];
+            if (null !== $library['examples']) {
+                $services->set('ux_showcase.examples.'.$name, TwigExampleFileProvider::class)->args([$library['examples'], $library['prefix']]);
+                $providers[] = service('ux_showcase.examples.'.$name);
+            }
+
+            $services->set('ux_showcase.library.'.$name, ConfiguredLibrary::class)
+                ->args([
+                    $name,
+                    $library['label'] ?? ucfirst($name),
+                    $library['prefix'],
+                    $library['groups'],
+                    $library['statuses'],
+                    $library['wrapper'],
+                    $library['bare'],
+                    inline_service(PreviewOptions::class)->args(array_values($library['preview'])),
+                    $providers,
+                    service(ComponentCatalog::class),
+                ])
+                ->tag('ux_showcase.library');
+        }
 
         $access = $config['access'];
 

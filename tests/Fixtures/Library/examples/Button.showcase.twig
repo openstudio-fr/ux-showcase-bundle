@@ -1,0 +1,10 @@
+{# Examples of Demo:Button #}
+{% showcase_example 'primary' with { label: 'Save' } %}
+{% end_showcase_example %}
+
+{% showcase_example 'danger' titled 'Dangerous action' with { label: 'Delete', variant: 'danger' } options { background: 'dark', height: 120 } %}
+{% end_showcase_example %}
+
+{% showcase_example 'with-icon' with { label: 'Send' } options { wrapper: false } %}
+    <span class="icon">&rarr;</span>
+{% end_showcase_example %}

@@ -1,0 +1,1 @@
+<section class="card"><h2>{{ title }}</h2><ul>{% for item in items %}<li>{{ item.label }} {{ item.meta.price }}</li>{% endfor %}</ul>{% block content %}{% endblock %}<footer>{% block footer %}{% endblock %}</footer></section>
