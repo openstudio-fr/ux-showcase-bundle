@@ -96,6 +96,7 @@ final readonly class ClassPropsReader implements PropsReaderInterface
     }
 
     /**
+     * @param class-string             $class
      * @param \ReflectionClass<object> $reflection
      */
     private function fromProperty(string $class, \ReflectionProperty $property, \ReflectionClass $reflection): PropDoc
