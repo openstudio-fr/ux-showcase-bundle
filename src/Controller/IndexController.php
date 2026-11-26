@@ -34,7 +34,16 @@ final readonly class IndexController
     {
         $libraries = [];
         foreach ($this->registry->libraries() as $library) {
-            $libraries[] = ['library' => $library, 'groups' => $this->registry->groups($library->getName())];
+            $groups = $this->registry->groups($library->getName());
+            $withoutExample = [];
+            foreach ($groups as $group) {
+                foreach ($group->components as $component) {
+                    if ([] === $this->registry->examples($library->getName(), $component->name)) {
+                        $withoutExample[$component->name] = true;
+                    }
+                }
+            }
+            $libraries[] = ['library' => $library, 'groups' => $groups, 'without_example' => $withoutExample];
         }
 
         return new Response($this->twig->render('@OpenStudioUxShowcase/index.html.twig', [

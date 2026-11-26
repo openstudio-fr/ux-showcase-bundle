@@ -326,7 +326,7 @@ Every route sits under the prefix you imported them with, behind the access chec
 
 | Name | Path | Screen |
 |---|---|---|
-| `ux_showcase_index` | `/` | libraries, then groups: components with a status badge (`ready`, `waiting`; `hidden` ones are absent) and documentation pages |
+| `ux_showcase_index` | `/` | libraries, then groups: components with a status badge (`ready`, `waiting`; `hidden` ones are absent), a "No example" badge when a component has none, and documentation pages |
 | `ux_showcase_component` | `/{library}/{component}` | the examples of a component, each with the tabs Preview, Code and Props, and the Try form beside the frame |
 | `ux_showcase_doc` | `/{library}/_docs/{slug}` | a documentation page: Preview and Code, no Props |
 | `ux_showcase_preview` | `/{library}/{component}/{slug}/preview` | the bare page of one example, loaded by its frame |

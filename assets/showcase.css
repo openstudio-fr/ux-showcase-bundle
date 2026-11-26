@@ -26,6 +26,7 @@
 .showcase-badge { display: inline-block; padding: 0.0625rem 0.5rem; font-size: 0.75rem; border-radius: 1rem; background: #e9ecef; color: #495057; }
 .showcase-badge-ready { background: #d1e7dd; color: #0a3622; }
 .showcase-badge-waiting { background: #fff3cd; color: #664d03; }
+.showcase-badge-no-example { background: #e9ecef; color: #495057; border: 1px solid #ced4da; }
 .showcase-badge-doc { background: #cfe2ff; color: #052c65; }
 
 .showcase-page-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }

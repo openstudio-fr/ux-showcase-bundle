@@ -10,6 +10,10 @@
                 <source>index.doc_page</source>
                 <target>Documentation</target>
             </trans-unit>
+            <trans-unit id="index.no_example" resname="index.no_example">
+                <source>index.no_example</source>
+                <target>Aucun exemple</target>
+            </trans-unit>
             <trans-unit id="status.ready" resname="status.ready">
                 <source>status.ready</source>
                 <target>Prêt</target>

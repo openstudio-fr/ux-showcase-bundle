@@ -54,6 +54,26 @@ final class ScreenTest extends TestCase
         self::assertStringNotContainsString('Demo:Legacy:Old', (string) $this->client()->getResponse()->getContent());
     }
 
+    public function testIndexFlagsAComponentWithNoExampleInText(): void
+    {
+        $crawler = $this->get('/_showcase/');
+
+        $chart = $crawler->filterXPath('//li[a[normalize-space()="Chart"]]');
+        self::assertSame(['Waiting', 'No example'], $this->texts($chart, '//span[contains(@class, "showcase-badge")]'));
+        $button = $crawler->filterXPath('//li[a[normalize-space()="Button"]]');
+        self::assertSame(['Ready'], $this->texts($button, '//span[contains(@class, "showcase-badge")]'));
+        self::assertSame(1, substr_count((string) $this->client()->getResponse()->getContent(), 'showcase-badge-no-example'));
+    }
+
+    public function testComponentPageWithNoExampleSaysSo(): void
+    {
+        $crawler = $this->get('/_showcase/demo/Demo:Experimental:Chart');
+
+        self::assertSame(200, $this->client()->getResponse()->getStatusCode());
+        self::assertSame(['This component has no example yet.'], $this->texts($crawler, '//p[contains(@class, "showcase-muted")]'));
+        self::assertCount(0, $crawler->filterXPath('//article'));
+    }
+
     public function testIndexListsDocumentationPagesInTheirGroup(): void
     {
         $crawler = $this->get('/_showcase/');
