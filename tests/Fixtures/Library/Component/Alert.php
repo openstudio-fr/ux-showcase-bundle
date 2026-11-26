@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace OpenStudio\UxShowcaseBundle\Tests\Fixtures\Library\Component;
 
+use OpenStudio\UxShowcaseBundle\Tests\Fixtures\Library\Dto\VehicleDto;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\ExposeInTemplate;
@@ -44,10 +45,11 @@ final class Alert
     }
 
     /**
-     * @param string $heading  Title of the box
-     * @param bool   $closable shows a close button
+     * @param string                $heading  Title of the box
+     * @param bool                  $closable shows a close button
+     * @param list<VehicleDto>|null $related  Related vehicles
      */
-    public function mount(string $heading, bool $closable = true): void
+    public function mount(string $heading, bool $closable = true, ?array $related = null): void
     {
         $this->slug = strtolower($heading);
         $this->label = $closable ? $heading : '';

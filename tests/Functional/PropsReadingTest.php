@@ -90,6 +90,7 @@ final class PropsReadingTest extends TestCase
             PropDoc::create('icon', '?string', true, null, '', null, [PropDoc::SOURCE_PROPERTY]),
             PropDoc::create('heading', 'string', false, null, 'Title of the box', null, [PropDoc::SOURCE_MOUNT]),
             PropDoc::create('closable', 'bool', true, true, 'shows a close button', null, [PropDoc::SOURCE_MOUNT]),
+            PropDoc::create('related', '?list<'.self::DTO.'VehicleDto>', true, null, 'Related vehicles', null, [PropDoc::SOURCE_MOUNT]),
         ]), $this->documentation()->get('Props:Alert'));
     }
 

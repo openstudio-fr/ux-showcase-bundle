@@ -131,7 +131,7 @@ final readonly class ClassPropsReader implements PropsReaderInterface
         $native = $parameter->getType();
         $type = null === $native ? PropDoc::UNKNOWN_TYPE : self::normalize((string) $native);
         if (null !== $tag) {
-            $type = self::normalize(self::qualify((string) $tag->type, $mount->getDeclaringClass()));
+            $type = self::normalize(self::tidy(self::qualify((string) $tag->type, $mount->getDeclaringClass())));
         }
         $hasDefault = $parameter->isDefaultValueAvailable();
 
@@ -144,6 +144,27 @@ final readonly class ClassPropsReader implements PropsReaderInterface
             self::enumValues($type),
             [PropDoc::SOURCE_MOUNT],
         );
+    }
+
+    /**
+     * The PHPDoc parser prints a union as `(A | B)`: written `A|B`.
+     */
+    private static function tidy(string $type): string
+    {
+        $type = preg_replace('/\s*\|\s*/', '|', $type) ?? $type;
+        if (str_starts_with($type, '(') && str_ends_with($type, ')')) {
+            $depth = 0;
+            foreach (str_split($type) as $position => $char) {
+                $depth += '(' === $char ? 1 : (')' === $char ? -1 : 0);
+                if (0 === $depth && $position < \strlen($type) - 1) {
+                    return $type;
+                }
+            }
+
+            return substr($type, 1, -1);
+        }
+
+        return $type;
     }
 
     /**
