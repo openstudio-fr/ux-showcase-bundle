@@ -1,0 +1,141 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the openstudio/ux-showcase-bundle package.
+ *
+ * (c) OpenStudio
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace OpenStudio\UxShowcaseBundle\Tests\Fixtures;
+
+use OpenStudio\UxShowcaseBundle\OpenStudioUxShowcaseBundle;
+use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
+use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
+use Symfony\Bundle\SecurityBundle\SecurityBundle;
+use Symfony\Bundle\TwigBundle\TwigBundle;
+use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+use Symfony\UX\TwigComponent\TwigComponentBundle;
+
+final class TestKernel extends Kernel
+{
+    use MicroKernelTrait;
+
+    /**
+     * @param array<string, mixed> $showcaseConfiguration
+     */
+    public function __construct(
+        bool $debug,
+        private readonly array $showcaseConfiguration = [],
+        private readonly bool $withSecurity = false,
+    ) {
+        parent::__construct('test', $debug);
+
+        // A non-debug container is never rebuilt on its own: start clean so a test never runs on a stale one.
+        (new Filesystem())->remove(sys_get_temp_dir().'/ux-showcase-tests/'.$this->variant());
+    }
+
+    private mixed $exceptionHandlerBeforeBoot = null;
+
+    public function boot(): void
+    {
+        if (!$this->booted) {
+            $this->exceptionHandlerBeforeBoot = self::currentExceptionHandler();
+        }
+
+        parent::boot();
+    }
+
+    // Some versions of the error handler leave their exception handler registered, which PHPUnit reports as risky.
+    public function shutdown(): void
+    {
+        parent::shutdown();
+
+        for ($attempt = 0; $attempt < 10 && self::currentExceptionHandler() !== $this->exceptionHandlerBeforeBoot; ++$attempt) {
+            restore_exception_handler();
+        }
+    }
+
+    public function registerBundles(): iterable
+    {
+        yield new FrameworkBundle();
+        yield new TwigBundle();
+        yield new TwigComponentBundle();
+        yield new OpenStudioUxShowcaseBundle();
+
+        if ($this->withSecurity) {
+            yield new SecurityBundle();
+        }
+    }
+
+    // Keeps the files a kernel writes next to its configuration (config/reference.php) out of the repository.
+    public function getProjectDir(): string
+    {
+        return sys_get_temp_dir().'/ux-showcase-tests/'.$this->variant().'/project';
+    }
+
+    public function getCacheDir(): string
+    {
+        return sys_get_temp_dir().'/ux-showcase-tests/'.$this->variant().'/cache';
+    }
+
+    public function getLogDir(): string
+    {
+        return sys_get_temp_dir().'/ux-showcase-tests/'.$this->variant().'/log';
+    }
+
+    protected function configureContainer(ContainerConfigurator $container, LoaderInterface $loader, ContainerBuilder $builder): void
+    {
+        $container->extension('framework', [
+            'secret' => 'test',
+            'test' => true,
+            'http_method_override' => false,
+            'handle_all_throwables' => true,
+            'php_errors' => ['log' => true],
+            'session' => ['storage_factory_id' => 'session.storage.factory.mock_file'],
+            'default_locale' => 'en',
+        ]);
+        $container->extension('ux_showcase', $this->showcaseConfiguration);
+
+        if ($this->withSecurity) {
+            $container->extension('security', [
+                'providers' => ['users' => ['memory' => ['users' => [
+                    'dev' => ['password' => 'x', 'roles' => ['ROLE_SHOWCASE']],
+                    'other' => ['password' => 'x', 'roles' => ['ROLE_USER']],
+                ]]]],
+                'firewalls' => ['main' => ['lazy' => true, 'provider' => 'users']],
+            ]);
+        }
+
+        $container->services()
+            ->set(AllowAllShowcaseAccess::class)
+            ->public();
+    }
+
+    protected function configureRoutes(RoutingConfigurator $routes): void
+    {
+        $routes->import('@OpenStudioUxShowcaseBundle/config/routes.php')->prefix('/_showcase');
+    }
+
+    private static function currentExceptionHandler(): mixed
+    {
+        $handler = set_exception_handler(null);
+        restore_exception_handler();
+
+        return $handler;
+    }
+
+    private function variant(): string
+    {
+        return hash('xxh3', serialize([$this->debug, $this->showcaseConfiguration, $this->withSecurity]));
+    }
+}
