@@ -101,7 +101,7 @@ and scripts are served with the page, with no dependency on the asset pipeline o
 
 The public API is what carries an `@api` tag: `ComponentLibraryInterface`, `ComponentReference`, `ComponentStatus`,
 `ComponentGroup`, `ShowcaseRegistry`, `Example`, `PreviewOptions`, `ResolvedPreview`, `ExampleProviderInterface`,
-`AsShowcaseExample`, `FixtureLoader`, `ExampleCodeGenerator`, `ExampleRenderer`, `PreviewUrlGeneratorInterface`, `PostedValuesNormalizerInterface`, `PostedValuesContext`, `PostedValueError`, `PreviewPrefill`. Everything else is `@internal`. The
+`AsShowcaseExample`, `FixtureLoader`, `ExampleCodeGenerator`, `ExampleRenderer`, `PreviewUrlGeneratorInterface`, `PostedValuesNormalizerInterface`, `PostedValuesContext`, `PostedValueError`, `PreviewPrefill`, `ComponentCatalog` (`names()` and `exists()`), `TwigExampleFileProvider`. Everything else is `@internal`. The
 package is 0.x: a minor version may break the API.
 
 ### A library in configuration
@@ -131,9 +131,93 @@ and class ones. The name is the TwigComponent name, `:` separated; its group is 
 last segment (`App:Form:Input` is in `Form`, `App:Button` in `General`). A component name is used as is in URLs, where
 `:` is legal; library names and example slugs match `[a-z0-9]+(-[a-z0-9]+)*`.
 
-A library that needs PHP implements `OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface`: autoconfigured
-(tag `ux_showcase.library`). It lists its `ComponentReference` (name, group, `ComponentStatus` `Ready`, `Waiting` or
-`Hidden`, label), its group order, its example providers, its wrapper and bare templates, its preview options.
+### A library in PHP
+
+A library that needs PHP implements `OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface`. It is autoconfigured
+(tag `ux_showcase.library`): no service definition is needed beyond the usual autowiring of your `src/`. It lists its
+`ComponentReference` (name, group, `ComponentStatus` `Ready`, `Waiting` or `Hidden`, label), its group order, its example
+providers, its wrapper and bare templates and its preview options.
+
+`ComponentCatalog` lists the components TwigComponent knows, and `TwigExampleFileProvider` reads a directory of
+`.showcase.twig` files (see "Twig example files"). A library can reuse both and decide the rest: the groups, the labels,
+which components it shows.
+
+```php
+use OpenStudio\UxShowcaseBundle\Example\PreviewOptions;
+use OpenStudio\UxShowcaseBundle\Example\TwigExampleFileProvider;
+use OpenStudio\UxShowcaseBundle\Library\ComponentCatalog;
+use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
+use OpenStudio\UxShowcaseBundle\Library\ComponentReference;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+
+final readonly class AppLibrary implements ComponentLibraryInterface
+{
+    public function __construct(
+        private ComponentCatalog $catalog,
+        #[Autowire('%kernel.project_dir%/showcase/examples')]
+        private string $examplesDirectory,
+    ) {
+    }
+
+    public function getName(): string
+    {
+        return 'app';
+    }
+
+    public function getLabel(): string
+    {
+        return 'Application';
+    }
+
+    public function getComponents(): array
+    {
+        $references = [];
+        foreach ($this->catalog->names() as $name) {
+            if (!str_starts_with($name, 'App:')) {
+                continue;
+            }
+
+            $segments = explode(':', substr($name, 4));
+            // App:Button:Base is labelled "Button"
+            $label = 'Base' === end($segments) && \count($segments) > 1 ? $segments[0] : null;
+            $group = str_contains($name, ':Form:') ? 'Forms' : 'General';
+
+            $references[] = new ComponentReference($name, $group, label: $label);
+        }
+
+        return $references;
+    }
+
+    public function getGroups(): array
+    {
+        return ['General', 'Forms'];
+    }
+
+    public function getExampleProviders(): iterable
+    {
+        yield new TwigExampleFileProvider($this->examplesDirectory);
+    }
+
+    public function getWrapperTemplate(): ?string
+    {
+        return null;
+    }
+
+    public function getBareTemplate(): ?string
+    {
+        return null;
+    }
+
+    public function getPreviewOptions(): PreviewOptions
+    {
+        return new PreviewOptions();
+    }
+}
+```
+
+Without a component prefix, `TwigExampleFileProvider` expects the full component name as a path: `App/Form/Input.showcase.twig`
+holds the examples of `App:Form:Input`. Pass the prefix as second argument to start the paths below it, as the
+`examples` option does.
 
 ### Twig example files
 
