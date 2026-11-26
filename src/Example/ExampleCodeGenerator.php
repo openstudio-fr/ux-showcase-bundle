@@ -53,6 +53,25 @@ final readonly class ExampleCodeGenerator
         return $opening."\n".self::INDENT.str_replace("\n", "\n".self::INDENT, $example->content)."\n</twig:".$name.'>';
     }
 
+    /**
+     * The snippet of an example whose props are not literals but the keys of a Twig variable: `:label="props['label']"`.
+     * What the preview of tried values is drawn from; the markup of the example is kept as it is.
+     *
+     * @param list<int|string> $names
+     *
+     * @internal
+     */
+    public function generateBound(Example $example, array $names, string $variable): string
+    {
+        $component = $example->component;
+        \assert(null !== $component && null !== $example->content);
+
+        $attributes = array_map(static fn (int|string $name): string => ':'.$name.'="'.$variable.'['.self::literal((string) $name).']"', $names);
+        $opening = '<twig:'.$component.($attributes ? ' '.implode(' ', $attributes) : '').'>';
+
+        return $opening."\n".$example->content."\n</twig:".$component.'>';
+    }
+
     private function attribute(string $name, mixed $value): string
     {
         if (\is_string($value) && 1 === preg_match('/^[^"\'\\\\{}\n]*$/', $value)) {

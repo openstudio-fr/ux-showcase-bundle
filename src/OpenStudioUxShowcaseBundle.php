@@ -27,6 +27,7 @@ use OpenStudio\UxShowcaseBundle\Library\ComponentCatalog;
 use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
 use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
 use OpenStudio\UxShowcaseBundle\Library\ConfiguredLibrary;
+use OpenStudio\UxShowcaseBundle\Preview\PostedValuesNormalizerInterface;
 use OpenStudio\UxShowcaseBundle\Props\PropsReaderInterface;
 use OpenStudio\UxShowcaseBundle\Screen\Background;
 use OpenStudio\UxShowcaseBundle\Screen\ComponentActionInterface;
@@ -84,6 +85,7 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
 
         $builder->registerForAutoconfiguration(ComponentLibraryInterface::class)->addTag('ux_showcase.library');
         $builder->registerForAutoconfiguration(PropsReaderInterface::class)->addTag('ux_showcase.props_reader');
+        $builder->registerForAutoconfiguration(PostedValuesNormalizerInterface::class)->addTag('ux_showcase.posted_values_normalizer');
         $builder->registerForAutoconfiguration(ComponentActionInterface::class)->addTag('ux_showcase.action');
         $builder->registerForAutoconfiguration(ExampleProviderInterface::class)->addTag('ux_showcase.example_provider');
         $builder->registerAttributeForAutoconfiguration(

@@ -17,13 +17,23 @@ use OpenStudio\UxShowcaseBundle\Controller\ComponentController;
 use OpenStudio\UxShowcaseBundle\Controller\DocPageController;
 use OpenStudio\UxShowcaseBundle\Controller\IndexController;
 use OpenStudio\UxShowcaseBundle\Controller\PreviewController;
+use OpenStudio\UxShowcaseBundle\Controller\TriedPreviewController;
 use OpenStudio\UxShowcaseBundle\EventListener\BarePageListener;
 use OpenStudio\UxShowcaseBundle\EventListener\ShowcaseAccessListener;
+use OpenStudio\UxShowcaseBundle\EventListener\SignedPreviewListener;
 use OpenStudio\UxShowcaseBundle\Example\ExampleCodeGenerator;
 use OpenStudio\UxShowcaseBundle\Example\ExampleRenderer;
 use OpenStudio\UxShowcaseBundle\Example\PhpExampleProvider;
 use OpenStudio\UxShowcaseBundle\Example\PreviewOptionsResolver;
 use OpenStudio\UxShowcaseBundle\Library\ComponentCatalog;
+use OpenStudio\UxShowcaseBundle\Preview\BarePage;
+use OpenStudio\UxShowcaseBundle\Preview\PostedValuesResolver;
+use OpenStudio\UxShowcaseBundle\Preview\PreviewPrefill;
+use OpenStudio\UxShowcaseBundle\Preview\PreviewRequestGuard;
+use OpenStudio\UxShowcaseBundle\Preview\PreviewUrlGeneratorInterface;
+use OpenStudio\UxShowcaseBundle\Preview\SignedPreviewUrlGenerator;
+use OpenStudio\UxShowcaseBundle\Preview\TypedValueConverter;
+use OpenStudio\UxShowcaseBundle\Preview\ValueSerializer;
 use OpenStudio\UxShowcaseBundle\Props\ClassPropsReader;
 use OpenStudio\UxShowcaseBundle\Props\ComponentDocumentation;
 use OpenStudio\UxShowcaseBundle\Props\TemplatePropsReader;
@@ -63,6 +73,9 @@ return static function (ContainerConfigurator $container): void {
         ->tag('kernel.event_listener', ['event' => 'kernel.request', 'method' => 'onRequest', 'priority' => 8])
         ->tag('kernel.event_listener', ['event' => 'kernel.response', 'method' => 'onResponse']);
 
+    $services->set(SignedPreviewListener::class)
+        ->tag('kernel.event_listener', ['event' => 'kernel.response', 'method' => 'onResponse']);
+
     $services->set(ActionResolver::class)->args([tagged_iterator('ux_showcase.action')]);
     $services->set(ExampleViewFactory::class)
         ->args([service(ExampleCodeGenerator::class), service(PreviewOptionsResolver::class), service(ActionResolver::class), service('router')]);
@@ -97,4 +110,28 @@ return static function (ContainerConfigurator $container): void {
     $services->set(PreviewOptionsResolver::class)->args([service(ShowcaseConfiguration::class)]);
     $services->set(ExampleRenderer::class)
         ->args([service('twig'), service(ExampleCodeGenerator::class), service(PreviewOptionsResolver::class)]);
+
+    // The preview of the values a visitor tried. A host replaces the address by aliasing PreviewUrlGeneratorInterface.
+    $services->set(SignedPreviewUrlGenerator::class)->args([service('router'), param('kernel.secret')]);
+    $services->alias(PreviewUrlGeneratorInterface::class, SignedPreviewUrlGenerator::class);
+    $services->set(PreviewRequestGuard::class)->args([service('security.csrf.token_manager')->nullOnInvalid()]);
+    $services->set(ValueSerializer::class);
+    $services->set(TypedValueConverter::class)->args([service(ValueSerializer::class)]);
+    $services->set(PostedValuesResolver::class)->args([service(TypedValueConverter::class), tagged_iterator('ux_showcase.posted_values_normalizer')]);
+    $services->set(PreviewPrefill::class)->args([service(ComponentDocumentation::class), service(TypedValueConverter::class), service(ValueSerializer::class)]);
+    $services->set(BarePage::class)
+        ->args([service('twig'), service(ShowcaseConfiguration::class), service(ShowcaseRegistry::class), service(ExampleRenderer::class), service(PreviewOptionsResolver::class)]);
+    $services->set(TriedPreviewController::class)
+        ->args([
+            service(ShowcaseRegistry::class),
+            service(ComponentDocumentation::class),
+            service(SignedPreviewUrlGenerator::class),
+            service(PreviewUrlGeneratorInterface::class),
+            service(PreviewRequestGuard::class),
+            service(PostedValuesResolver::class),
+            service(BarePage::class),
+            service('twig'),
+            service('translator')->nullOnInvalid(),
+        ])
+        ->tag('controller.service_arguments');
 };
