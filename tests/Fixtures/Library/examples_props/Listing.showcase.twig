@@ -1,0 +1,5 @@
+{% showcase_example 'default' with { title: 'Stock', vehicle: { name: 'Golf', price: 12.5, tags: ['new', 'diesel'], layout: 'rows', since: '2026-01-02T10:30:00+00:00' }, others: [{ name: 'Polo' }, { name: 'Passat', price: 30 }], layout: 'rows', since: '2026-03-04T08:00:00+00:00' } %}{% end_showcase_example %}
+
+{% showcase_example 'minimal' with { title: 'Empty', vehicle: { name: 'Up' } } %}{% end_showcase_example %}
+
+{% showcase_example 'with-content' with { title: 'Body', vehicle: { name: 'Fox' } } %}<p class="body">Kept</p>{% end_showcase_example %}

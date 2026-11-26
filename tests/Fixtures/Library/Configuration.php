@@ -44,6 +44,26 @@ final class Configuration
     }
 
     /**
+     * The test library and a second one with the `Props:` components, with examples of every kind of prop (object, list,
+     * enum, date, union) to try.
+     *
+     * @return array<string, mixed>
+     */
+    public static function props(): array
+    {
+        $demo = self::demo();
+        /** @var array<string, array<string, mixed>> $libraries */
+        $libraries = $demo['libraries'];
+
+        return ['libraries' => $libraries + ['props' => [
+            'label' => 'Props',
+            'prefix' => 'Props',
+            'examples' => __DIR__.'/examples_props',
+            'bare' => 'showcase/bare.html.twig',
+        ]]] + $demo;
+    }
+
+    /**
      * @param array<string, mixed> $configuration the test library when empty
      */
     public static function kernel(bool $debug = true, array $configuration = []): TestKernel

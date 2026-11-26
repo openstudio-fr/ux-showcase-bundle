@@ -17,6 +17,8 @@ use OpenStudio\UxShowcaseBundle\Example\ExampleCodeGenerator;
 use OpenStudio\UxShowcaseBundle\Example\ExampleRenderer;
 use OpenStudio\UxShowcaseBundle\Example\FixtureLoader;
 use OpenStudio\UxShowcaseBundle\OpenStudioUxShowcaseBundle;
+use OpenStudio\UxShowcaseBundle\Preview\PreviewPrefill;
+use OpenStudio\UxShowcaseBundle\Preview\SignedPreviewUrlGenerator;
 use OpenStudio\UxShowcaseBundle\Props\ComponentDocumentation;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use Psr\Log\NullLogger;
@@ -158,8 +160,9 @@ final class TestKernel extends Kernel
             $services->set(Library\Action\AddToPageAction::class)->autoconfigure();
             $services->set(Library\Action\KeepExampleAction::class)->autoconfigure();
             $services->set(Library\Example\ArticleCard::class)->autowire()->autoconfigure();
+            $services->set(Library\Preview\CatalogueVehicleNormalizer::class)->autoconfigure();
             // Public aliases: the services themselves are private and inlined or removed when nothing else uses them.
-            foreach ([ComponentDocumentation::class, ShowcaseRegistry::class, ExampleRenderer::class, ExampleCodeGenerator::class, FixtureLoader::class] as $id) {
+            foreach ([ComponentDocumentation::class, ShowcaseRegistry::class, ExampleRenderer::class, ExampleCodeGenerator::class, FixtureLoader::class, PreviewPrefill::class, SignedPreviewUrlGenerator::class] as $id) {
                 $services->alias('test.'.$id, $id)->public();
             }
         }
