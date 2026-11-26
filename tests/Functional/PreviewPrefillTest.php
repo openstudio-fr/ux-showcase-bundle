@@ -75,6 +75,8 @@ final class PreviewPrefillTest extends TestCase
 
     private function prefill(): PreviewPrefill
     {
+        // One kernel per test: a second one would leave the exception handler of the first registered.
+        $this->kernel?->shutdown();
         $this->kernel = Configuration::kernel(true, Configuration::props());
         $this->kernel->boot();
         $prefill = $this->kernel->getContainer()->get('test.'.PreviewPrefill::class);

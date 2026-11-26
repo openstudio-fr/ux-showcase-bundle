@@ -59,6 +59,8 @@ final class ComponentCatalogTest extends TestCase
 
     private function catalog(): ComponentCatalog
     {
+        // One kernel per test: a second one would leave the exception handler of the first registered.
+        $this->kernel?->shutdown();
         $this->kernel = Configuration::kernel();
         $this->kernel->boot();
         $container = $this->kernel->getContainer()->get('test.service_container');
