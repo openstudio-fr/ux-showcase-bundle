@@ -85,6 +85,146 @@ final readonly class TypedValueConverter
     }
 
     /**
+     * The control a form offers for the prop, null when the prop is not editable.
+     */
+    public function shape(PropDoc $prop): ?PropShape
+    {
+        try {
+            $node = $this->parse($prop->type);
+            if (!$this->editable($node, false)) {
+                return null;
+            }
+        } catch (ParserException) {
+            return null;
+        }
+
+        [$node, $nullable] = $this->withoutNull($node);
+
+        if (null !== $prop->allowedValues) {
+            return new PropShape(PropShape::CHOICE, $nullable || \in_array(null, $prop->allowedValues, true), array_values(array_filter($prop->allowedValues, static fn (mixed $value): bool => null !== $value)));
+        }
+
+        return $this->shapeOf($node, $nullable);
+    }
+
+    /**
+     * @return array{TypeNode, bool} the type without its null member, and whether it had one
+     */
+    private function withoutNull(TypeNode $node): array
+    {
+        if ($node instanceof NullableTypeNode) {
+            return [$this->withoutNull($node->type)[0], true];
+        }
+
+        if (!$node instanceof UnionTypeNode) {
+            return [$node, false];
+        }
+
+        $members = array_values(array_filter($node->types, fn (TypeNode $member): bool => !$this->isNull($member)));
+        if (\count($members) === \count($node->types)) {
+            return [$node, false];
+        }
+
+        return [1 === \count($members) ? $members[0] : new UnionTypeNode($members), true];
+    }
+
+    private function isNull(TypeNode $node): bool
+    {
+        return ($node instanceof IdentifierTypeNode && 'null' === $this->name($node)) || ($node instanceof ConstTypeNode && $node->constExpr instanceof ConstExprNullNode);
+    }
+
+    private function shapeOf(TypeNode $node, bool $nullable): PropShape
+    {
+        if ($node instanceof ConstTypeNode) {
+            return new PropShape(PropShape::CHOICE, $nullable, [$this->literal($node)]);
+        }
+
+        if ($node instanceof GenericTypeNode) {
+            $name = $this->name((string) $node->type);
+
+            return match (true) {
+                \in_array($name, self::INTS, true) => new PropShape(PropShape::INTEGER, $nullable),
+                \in_array($name, self::ARRAYS, true) => new PropShape(PropShape::JSON, $nullable),
+                default => new PropShape(PropShape::TEXT, $nullable),
+            };
+        }
+
+        if ($node instanceof UnionTypeNode) {
+            return $this->unionShape($node, $nullable);
+        }
+
+        if (!$node instanceof IdentifierTypeNode) {
+            return new PropShape(PropShape::JSON, $nullable);
+        }
+
+        $name = $this->name($node);
+
+        return match (true) {
+            \in_array($name, self::STRINGS, true) => new PropShape(PropShape::TEXT, $nullable),
+            \in_array($name, ['scalar', 'array-key'], true) => new PropShape(PropShape::TEXT, $nullable, numeric: true),
+            \in_array($name, self::INTS, true) => new PropShape(PropShape::INTEGER, $nullable),
+            \in_array($name, [...self::FLOATS, 'numeric'], true) => new PropShape(PropShape::NUMBER, $nullable),
+            \in_array($name, self::BOOLS, true) => new PropShape(PropShape::BOOLEAN, $nullable),
+            \in_array($name, self::ARRAYS, true) => new PropShape(PropShape::JSON, $nullable),
+            $this->isBuiltin($name) => new PropShape(PropShape::JSON, $nullable),
+            enum_exists(ltrim($node->name, '\\')) => new PropShape(PropShape::CHOICE, $nullable, $this->cases(ltrim($node->name, '\\'))),
+            $this->isDate($node->name) => new PropShape(PropShape::TEXT, $nullable),
+            default => new PropShape(PropShape::JSON, $nullable),
+        };
+    }
+
+    private function unionShape(UnionTypeNode $union, bool $nullable): PropShape
+    {
+        if (array_reduce($union->types, static fn (bool $all, TypeNode $member): bool => $all && $member instanceof ConstTypeNode, true)) {
+            /** @var list<ConstTypeNode> $members */
+            $members = $union->types;
+
+            return new PropShape(PropShape::CHOICE, $nullable, array_map($this->literal(...), $members));
+        }
+
+        $names = [];
+        foreach ($union->types as $member) {
+            if (!$member instanceof IdentifierTypeNode) {
+                return new PropShape(PropShape::JSON, $nullable);
+            }
+            $names[] = $this->name($member);
+        }
+
+        $strings = [] !== array_intersect($names, self::STRINGS);
+        $numbers = [] !== array_intersect($names, [...self::INTS, ...self::FLOATS, 'numeric']);
+        if (\count($names) !== \count(array_intersect($names, [...self::STRINGS, ...self::INTS, ...self::FLOATS, 'numeric']))) {
+            return new PropShape(PropShape::JSON, $nullable);
+        }
+
+        return match (true) {
+            $strings => new PropShape(PropShape::TEXT, $nullable, numeric: $numbers),
+            [] !== array_intersect($names, [...self::FLOATS, 'numeric']) => new PropShape(PropShape::NUMBER, $nullable),
+            default => new PropShape(PropShape::INTEGER, $nullable),
+        };
+    }
+
+    private function literal(ConstTypeNode $node): bool|int|string|null
+    {
+        return match (true) {
+            $node->constExpr instanceof ConstExprStringNode => $node->constExpr->value,
+            $node->constExpr instanceof ConstExprIntegerNode => (int) $node->constExpr->value,
+            $node->constExpr instanceof ConstExprTrueNode => true,
+            $node->constExpr instanceof ConstExprFalseNode => false,
+            default => null,
+        };
+    }
+
+    /**
+     * @param class-string<\UnitEnum> $class
+     *
+     * @return list<int|string>
+     */
+    private function cases(string $class): array
+    {
+        return array_map(static fn (\UnitEnum $case): int|string => $case instanceof \BackedEnum ? $case->value : $case->name, $class::cases());
+    }
+
+    /**
      * @throws InvalidPostedValuesException with the path of every faulty value
      */
     public function convert(mixed $value, PropDoc $prop, bool $fromForm): mixed
@@ -104,13 +244,38 @@ final readonly class TypedValueConverter
             throw InvalidPostedValuesException::at($prop->name, \sprintf('This prop is not editable: its type is "%s".', $prop->type));
         }
 
+        // The empty choice of a select: nothing was chosen.
+        if ($fromForm && '' === $value && null !== $prop->allowedValues && PropDoc::acceptsNull($prop->type) && !\in_array('', $prop->allowedValues, true)) {
+            return null;
+        }
+
+        // A form has one text field for an object or a list: it carries JSON.
+        if ($fromForm && \is_string($value) && '' !== trim($value) && PropShape::JSON === $this->shape($prop)?->kind) {
+            $value = $this->decodedFormJson($value, $node, $prop->name);
+            // What was decoded has the types of JSON, as in a JSON body: an int is a float where a float is declared.
+            $fromForm = false;
+        }
+
         $converted = $this->node($node, $value, $prop->name, $fromForm);
 
-        if (null !== $prop->allowedValues && (null === $converted || \is_scalar($converted)) && !\in_array($converted, $prop->allowedValues, true)) {
+        if (null !== $prop->allowedValues && (null === $converted ? !PropDoc::acceptsNull($prop->type) : \is_scalar($converted)) && !\in_array($converted, $prop->allowedValues, true)) {
             throw InvalidPostedValuesException::at($prop->name, \sprintf('Expected one of: %s.', implode(', ', array_map(static fn (mixed $allowed): string => json_encode($allowed, \JSON_THROW_ON_ERROR), $prop->allowedValues))));
         }
 
         return $converted;
+    }
+
+    private function decodedFormJson(string $text, TypeNode $node, string $path): mixed
+    {
+        try {
+            return json_decode($text, true, 64, \JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            if ($this->acceptsText($node)) {
+                return $text;
+            }
+
+            throw InvalidPostedValuesException::at($path, 'Not valid JSON: '.$exception->getMessage());
+        }
     }
 
     private function accepts(TypeNode $node, object $value): bool
