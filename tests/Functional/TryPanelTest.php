@@ -74,7 +74,7 @@ final class TryPanelTest extends TestCase
         self::assertNotNull($crawler->filterXPath(\sprintf('//*[@id="%s"]', $describedBy[1]))->attr('hidden'), 'no error until there is one');
 
         $ids = $crawler->filterXPath('//*[@id]')->each(static fn (Crawler $node): string => (string) $node->attr('id'));
-        self::assertSame($ids, array_keys(array_flip($ids)), 'ids are unique');
+        self::assertSame($ids, array_values(array_unique($ids)), 'ids are unique');
     }
 
     public function testAPropTheExampleDoesNotSetShowsItsDefaultAndIsNotSentUntilChanged(): void

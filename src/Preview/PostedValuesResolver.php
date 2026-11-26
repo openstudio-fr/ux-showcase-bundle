@@ -88,6 +88,7 @@ final readonly class PostedValuesResolver
             throw new UnsupportedPostException('Post JSON (application/json) or a form (application/x-www-form-urlencoded).');
         }
 
+        /** @var array<string, mixed> $values the fields of a form are named */
         $values = $request->request->all();
         unset($values[PreviewRequestGuard::TOKEN_FIELD]);
 
