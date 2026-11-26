@@ -12,6 +12,7 @@ declare(strict_types=1);
  */
 
 use OpenStudio\UxShowcaseBundle\Access\ShowcaseAccessInterface;
+use OpenStudio\UxShowcaseBundle\Command\CheckCommand;
 use OpenStudio\UxShowcaseBundle\Controller\AssetController;
 use OpenStudio\UxShowcaseBundle\Controller\ComponentController;
 use OpenStudio\UxShowcaseBundle\Controller\DocPageController;
@@ -62,6 +63,10 @@ return static function (ContainerConfigurator $container): void {
             ->autowire()
             ->tag('controller.service_arguments');
     }
+
+    $services->set(CheckCommand::class)
+        ->args([service(ShowcaseRegistry::class), service(PreviewOptionsResolver::class), service('http_kernel'), service('router'), service('request_stack'), service('twig')])
+        ->tag('console.command');
 
     $services->set(ShowcaseAccessListener::class)
         ->args([service(ShowcaseAccessInterface::class)])

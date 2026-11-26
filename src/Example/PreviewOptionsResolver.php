@@ -39,14 +39,15 @@ final readonly class PreviewOptionsResolver
         $levels[] = $library->getPreviewOptions();
         $levels[] = $this->configuration->preview;
 
-        $background = $bodyClass = $wrapper = $height = null;
+        $background = $bodyClass = $wrapper = $height = $needsData = null;
         foreach ($levels as $level) {
             $background ??= $level->background;
             $bodyClass ??= $level->bodyClass;
             $wrapper ??= $level->wrapper;
             $height ??= $level->height;
+            $needsData ??= $level->needsData;
         }
 
-        return new ResolvedPreview($background, $bodyClass, $wrapper ?? true, $height);
+        return new ResolvedPreview($background, $bodyClass, $wrapper ?? true, $height, $needsData ?? false);
     }
 }

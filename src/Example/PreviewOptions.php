@@ -25,12 +25,14 @@ final readonly class PreviewOptions
      * @param string|null $bodyClass  classes of the body of the bare preview page
      * @param bool|null   $wrapper    whether the library wrapper surrounds the example
      * @param int|null    $height     preview height in pixels, null to fit the content
+     * @param bool|null   $needsData  whether the example reads data (database, session, a back-office API) the check command does not have
      */
     public function __construct(
         public ?string $background = null,
         public ?string $bodyClass = null,
         public ?bool $wrapper = null,
         public ?int $height = null,
+        public ?bool $needsData = null,
     ) {
         if (null !== $height && $height < 1) {
             throw new \InvalidArgumentException('The preview height is a positive number of pixels.');

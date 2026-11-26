@@ -34,7 +34,7 @@ use Twig\TokenParser\AbstractTokenParser;
  */
 final class ExampleTokenParser extends AbstractTokenParser
 {
-    private const OPTIONS = ['background' => 'string', 'body_class' => 'string', 'wrapper' => 'boolean', 'height' => 'integer'];
+    private const OPTIONS = ['background' => 'string', 'body_class' => 'string', 'wrapper' => 'boolean', 'height' => 'integer', 'needs_data' => 'boolean'];
 
     public function __construct(private readonly bool $free)
     {
