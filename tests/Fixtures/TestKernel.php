@@ -129,15 +129,18 @@ final class TestKernel extends Kernel
             ]);
         }
 
+        // Both keys are required by UX 3.x, and defaults must not be empty on 2.x.
+        $container->extension('twig_component', [
+            'anonymous_template_directory' => 'components/',
+            'defaults' => ['OpenStudio\\UxShowcaseBundle\\Tests\\Fixtures\\Library\\Component\\' => ['template_directory' => 'components/', 'name_prefix' => 'Demo']],
+        ]);
+
         $services = $container->services();
         $services->set(AllowAllShowcaseAccess::class)->public();
 
         if ($this->withLibrary) {
             $library = __DIR__.'/Library';
             $container->extension('twig', ['paths' => [$library.'/templates']]);
-            $container->extension('twig_component', ['defaults' => [
-                'OpenStudio\\UxShowcaseBundle\\Tests\\Fixtures\\Library\\Component\\' => ['template_directory' => 'components/', 'name_prefix' => 'Demo'],
-            ]]);
 
             $services->load('OpenStudio\\UxShowcaseBundle\\Tests\\Fixtures\\Library\\Component\\', $library.'/Component/')->autoconfigure();
             $services->set('logger', NullLogger::class);

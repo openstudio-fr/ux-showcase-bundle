@@ -24,19 +24,18 @@ use Twig\Loader\FilesystemLoader;
  */
 final class ComponentCatalog
 {
-    // twig_component.anonymous_template_directory is not exposed by TwigComponent as a parameter: its default is assumed.
-    private const ANONYMOUS_DIRECTORY = 'components';
-
     /** @var list<string>|null */
     private ?array $names = null;
 
     /**
-     * @param array<class-string, string> $classMap component class => name, as TwigComponent registered it
+     * @param array<class-string, string> $classMap           component class => name, as TwigComponent registered it
+     * @param string                      $anonymousDirectory twig_component.anonymous_template_directory
      */
     public function __construct(
         private readonly ComponentFactory $factory,
         private readonly FilesystemLoader $loader,
         private readonly array $classMap,
+        private readonly string $anonymousDirectory = 'components',
     ) {
     }
 
@@ -91,7 +90,7 @@ final class ComponentCatalog
                 continue;
             }
             foreach ($this->loader->getPaths($namespace) as $path) {
-                $directory = $path.'/'.(FilesystemLoader::MAIN_NAMESPACE === $namespace ? self::ANONYMOUS_DIRECTORY : 'components');
+                $directory = $path.'/'.(FilesystemLoader::MAIN_NAMESPACE === $namespace ? $this->anonymousDirectory : 'components');
                 if (is_dir($directory)) {
                     $directories[$directory] = $namespace;
                 }

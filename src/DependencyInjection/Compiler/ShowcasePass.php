@@ -57,6 +57,12 @@ final class ShowcasePass implements CompilerPassInterface
         if (!\is_array($classMap)) {
             throw new \LogicException('ux_showcase could not read the component class map of symfony/ux-twig-component: its container wiring changed.');
         }
-        $container->findDefinition(ComponentCatalog::class)->setArgument('$classMap', $classMap);
+        $directory = $container->findDefinition('ux.twig_component.component_template_finder')->getArguments()[1] ?? 'components';
+        if (!\is_string($directory)) {
+            throw new \LogicException('ux_showcase could not read twig_component.anonymous_template_directory: its container wiring changed.');
+        }
+        $container->findDefinition(ComponentCatalog::class)
+            ->setArgument('$classMap', $classMap)
+            ->setArgument('$anonymousDirectory', trim($directory, '/'));
     }
 }
