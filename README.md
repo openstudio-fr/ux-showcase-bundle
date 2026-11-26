@@ -256,6 +256,10 @@ A free example is a Twig snippet with no props, shown without a form (a whole pa
 {% end_showcase_free %}
 ```
 
+The tags are known to the Twig environment of the application, so `bin/console lint:twig` checks example files stored
+next to your components: a syntax error in a tag is reported. Outside the showcase they render nothing, and their body
+is never evaluated.
+
 A documentation page (colours, typography, icons) is a free example tied to no component: a file in
 `_docs/<Group>/<name>.showcase.twig` holds `showcase_free` tags, listed under the group `<Group>`.
 
