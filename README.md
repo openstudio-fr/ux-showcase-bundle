@@ -91,11 +91,52 @@ bundle, a refused request gets a 404 (never a 403, so its existence is not adver
   than in an `access_control` rule: a host without a Symfony firewall on the path, as Thelia has on `/admin`, would
   protect nothing.
 
-Thelia: see the Thelia section (coming). The access service is the place to open the showcase to back-office
-administrators.
+On Thelia, see [Thelia](#thelia): the access service is the place to open the showcase to back-office administrators.
 
 The screen is in English; a French translation is provided in the `UxShowcaseBundle` translation domain. Its styles
 and scripts are served with the page, with no dependency on the asset pipeline of the application.
+
+## Thelia
+
+On a Thelia 3 site built from `thelia/thelia-project`, the installation above works with two differences:
+
+- the kernel of the project imports the YAML files of `config/routes/` only, so the routes go in
+  `config/routes/ux_showcase.yaml`:
+
+  ```yaml
+  ux_showcase:
+      resource: '@OpenStudioUxShowcaseBundle/config/routes.php'
+      prefix: /_showcase
+  ```
+
+- the back office of Thelia has no Symfony firewall, so `access.role` cannot open the showcase to its administrators.
+  Name in `access.service` a service that asks the security context of Thelia; it replaces the debug rule, hence the
+  `kernel.debug` argument:
+
+  ```php
+  use OpenStudio\UxShowcaseBundle\Access\ShowcaseAccessInterface;
+  use Symfony\Component\DependencyInjection\Attribute\Autowire;
+  use Symfony\Component\HttpFoundation\Request;
+  use Thelia\Core\Security\SecurityContext;
+
+  final readonly class AdministratorAccess implements ShowcaseAccessInterface
+  {
+      public function __construct(
+          private SecurityContext $securityContext,
+          #[Autowire('%kernel.debug%')] private bool $debug,
+      ) {
+      }
+
+      public function isGranted(Request $request): bool
+      {
+          return $this->debug || $this->securityContext->hasAdminUser();
+      }
+  }
+  ```
+
+Registration by the Thelia core, with this access service included, is proposed to Thelia and is not in a release yet;
+once it is, this section will name the first version that ships it and both steps will go away. The components of the
+Flexy theme, with the examples the theme and its modules already provide, will come as a library provided by Flexy.
 
 ## Libraries and examples
 
