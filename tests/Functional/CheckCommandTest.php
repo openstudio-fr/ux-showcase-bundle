@@ -43,8 +43,17 @@ final class CheckCommandTest extends TestCase
         [$status, $display] = $this->check(['--library' => ['demo', 'props', 'other']]);
 
         self::assertSame(0, $status, $display);
-        self::assertMatchesRegularExpression('/^Checked \d+, passed \d+, failed 0, skipped 0\.$/m', $display);
+        self::assertMatchesRegularExpression('/^Checked \d+, passed \d+, failed 0, skipped 1\.$/m', $display);
+        self::assertStringContainsString('WARN  demo / Demo:Layout:Card / article skipped, needs data: use --with-data to render it', $display);
         self::assertStringNotContainsString('FAIL', $display);
+    }
+
+    public function testAPhpExampleThatNeedsDataIsRenderedWithData(): void
+    {
+        [$status, $display] = $this->check(['--library' => ['demo'], '--with-data' => true]);
+
+        self::assertSame(0, $status, $display);
+        self::assertMatchesRegularExpression('/^Checked \d+, passed \d+, failed 0, skipped 0\.$/m', $display);
     }
 
     public function testEveryBrokenExampleIsListedWithItsNameAndTheExitCodeIsOne(): void
