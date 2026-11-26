@@ -444,8 +444,9 @@ final class ScreenTest extends TestCase
                 self::assertTrue($route->getDefault('_ux_showcase'), $name);
             }
         }
-        self::assertSame(['ux_showcase_index', 'ux_showcase_component', 'ux_showcase_doc', 'ux_showcase_preview', 'ux_showcase_doc_preview', 'ux_showcase_asset'], array_values(array_intersect(['ux_showcase_index', 'ux_showcase_component', 'ux_showcase_doc', 'ux_showcase_preview', 'ux_showcase_doc_preview', 'ux_showcase_asset'], $names)));
-        self::assertCount(6, $names);
+        $expected = ['ux_showcase_index', 'ux_showcase_component', 'ux_showcase_doc', 'ux_showcase_preview', 'ux_showcase_preview_try', 'ux_showcase_preview_link', 'ux_showcase_doc_preview', 'ux_showcase_asset'];
+        self::assertSame($expected, array_values(array_intersect($expected, $names)));
+        self::assertCount(8, $names);
     }
 
     private function client(): KernelBrowser

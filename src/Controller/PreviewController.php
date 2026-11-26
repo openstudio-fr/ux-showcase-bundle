@@ -15,21 +15,14 @@ namespace OpenStudio\UxShowcaseBundle\Controller;
 
 use OpenStudio\UxShowcaseBundle\EventListener\BarePageListener;
 use OpenStudio\UxShowcaseBundle\Example\Example;
-use OpenStudio\UxShowcaseBundle\Example\ExampleRenderer;
-use OpenStudio\UxShowcaseBundle\Example\PreviewOptions;
-use OpenStudio\UxShowcaseBundle\Example\PreviewOptionsResolver;
-use OpenStudio\UxShowcaseBundle\Exception\ShowcaseException;
 use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
+use OpenStudio\UxShowcaseBundle\Preview\BarePage;
 use OpenStudio\UxShowcaseBundle\Screen\Requirements;
-use OpenStudio\UxShowcaseBundle\Screen\ScreenState;
-use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
-use Twig\Environment;
-use Twig\Markup;
 
 /**
  * The bare page one example is shown in, loaded by the frame of the component page: the template of the library with the
@@ -37,15 +30,12 @@ use Twig\Markup;
  */
 final readonly class PreviewController
 {
-    public const DEFAULT_TEMPLATE = '@OpenStudioUxShowcase/bare.html.twig';
-    public const REQUIRED_BLOCKS = ['head_assets', 'body_attributes', 'content'];
+    public const DEFAULT_TEMPLATE = BarePage::DEFAULT_TEMPLATE;
+    public const REQUIRED_BLOCKS = BarePage::REQUIRED_BLOCKS;
 
     public function __construct(
-        private Environment $twig,
-        private ShowcaseConfiguration $configuration,
         private ShowcaseRegistry $registry,
-        private ExampleRenderer $renderer,
-        private PreviewOptionsResolver $previewResolver,
+        private BarePage $page,
     ) {
     }
 
@@ -81,27 +71,6 @@ final readonly class PreviewController
 
     private function render(Request $request, ComponentLibraryInterface $library, Example $example): Response
     {
-        $screen = new PreviewOptions(background: ScreenState::fromRequest($request, $this->configuration)->background);
-        $preview = $this->previewResolver->resolve($library, $example, $screen);
-        $background = null === $preview->background ? null : $this->configuration->backgrounds[$preview->background] ?? null;
-
-        $templateName = $library->getBareTemplate() ?? self::DEFAULT_TEMPLATE;
-        $template = $this->twig->load($templateName);
-        foreach (self::REQUIRED_BLOCKS as $block) {
-            if (!$template->hasBlock($block)) {
-                throw new ShowcaseException(\sprintf('The bare template "%s" of the library "%s" has no block "%s": extend "%s" and override its blocks.', $templateName, $library->getName(), $block, self::DEFAULT_TEMPLATE));
-            }
-        }
-
-        return new Response($template->render([
-            'library' => $library,
-            'component' => null === $example->component ? null : $this->registry->component($library->getName(), $example->component),
-            'example' => $example,
-            'content' => new Markup($this->renderer->render($library, $example, $screen), $this->twig->getCharset()),
-            'preview' => $preview,
-            'background' => $background,
-            'html_attributes' => $background?->toHtmlAttributes() ?? [],
-            'body_class' => $preview->bodyClass,
-        ]), Response::HTTP_OK, ['Content-Type' => 'text/html; charset=UTF-8']);
+        return $this->page->render($request, $library, $example);
     }
 }

@@ -101,7 +101,7 @@ and scripts are served with the page, with no dependency on the asset pipeline o
 
 The public API is what carries an `@api` tag: `ComponentLibraryInterface`, `ComponentReference`, `ComponentStatus`,
 `ComponentGroup`, `ShowcaseRegistry`, `Example`, `PreviewOptions`, `ResolvedPreview`, `ExampleProviderInterface`,
-`AsShowcaseExample`, `FixtureLoader`, `ExampleCodeGenerator`, `ExampleRenderer`. Everything else is `@internal`. The
+`AsShowcaseExample`, `FixtureLoader`, `ExampleCodeGenerator`, `ExampleRenderer`, `PreviewUrlGeneratorInterface`, `PostedValuesNormalizerInterface`, `PostedValuesContext`, `PostedValueError`, `PreviewPrefill`. Everything else is `@internal`. The
 package is 0.x: a minor version may break the API.
 
 ### A library in configuration
@@ -234,6 +234,7 @@ Every route sits under the prefix you imported them with, behind the access chec
 | `ux_showcase_component` | `/{library}/{component}` | the examples of a component, each with the tabs Preview, Code and Props |
 | `ux_showcase_doc` | `/{library}/_docs/{slug}` | a documentation page: Preview and Code, no Props |
 | `ux_showcase_preview` | `/{library}/{component}/{slug}/preview` | the bare page of one example, loaded by its frame |
+| `ux_showcase_preview_link`, `ux_showcase_preview_try` | see "Trying other values" | signed preview of tried values |
 | `ux_showcase_doc_preview` | `/{library}/_docs/{slug}/preview` | the bare page of a documentation page |
 | `ux_showcase_asset` | `/_assets/{file}` | the script and the style of the screens, served with cache headers |
 
@@ -329,6 +330,59 @@ Outside debug the registry (components, examples) is built once and kept in a fi
 `tests/Fixtures/public/index.php` serves the test library at `/_showcase/` with debug on:
 `php -S 127.0.0.1:8000 tests/Fixtures/public/index.php`, or an `index.php` of your own at the root of the clone that
 requires it.
+
+## Trying other values
+
+The component page lets a visitor try other prop values; the server side is a signed preview (the form itself is a screen concern).
+
+| Name | Method and path | Role |
+|---|---|---|
+| `ux_showcase_preview_link` | GET `/{library}/{component}/{slug}/preview-link` | JSON `{url, token, expires}`: a fresh signed address and the CSRF token. A page left open more than an hour asks here for new ones. |
+| `ux_showcase_preview_try` | POST `/{library}/{component}/{slug}/preview?locale=&expires=&signature=` | the example drawn again, in the bare page, with the posted values |
+
+The POST has the path of the bare page (GET) of the example; the query is what `PreviewUrlGeneratorInterface::generate($library, $example, $locale)` gives. The default implementation signs library, component, slug, locale and expiry (HMAC-SHA256, key derived from `kernel.secret` for this use only, one hour, `hash_equals`). A host replaces the address by aliasing `OpenStudio\UxShowcaseBundle\Preview\PreviewUrlGeneratorInterface` to its own service, which then owns the route.
+
+Order of the checks: access service (404 outside it, as everywhere), signature (404 when wrong, altered or expired), origin then CSRF token (403), values (422).
+
+- Origin: `Sec-Fetch-Site: same-origin` when the browser sends it, else the host of `Origin` must be the host of the request. Neither: 403.
+- CSRF: `symfony/security-csrf`, token id `ux_showcase_preview`, in the `X-CSRF-Token` header or the `_token` field (form only). It needs `framework.csrf_protection`; without it every POST is a 403.
+- Body: `application/json` (an object, prop name to value) or a form (`application/x-www-form-urlencoded`, `multipart/form-data`). Anything else: 415.
+
+```http
+POST /_showcase/props/Props:Listing/default/preview?locale=en&expires=1790000000&signature=... HTTP/1.1
+Content-Type: application/json
+X-CSRF-Token: ...
+
+{"title": "Other", "vehicle": {"name": "Beetle", "price": 9.5, "tags": ["a"]}, "layout": "grid", "since": "2026-05-06T07:08:00+02:00"}
+```
+
+The example is replayed with its own props, and only the posted keys are replaced (its content and blocks are kept, and cannot be posted). Only props of the `ComponentDoc` table are accepted: any other key is a 422 that names it (a key would otherwise become an HTML attribute through `{{ attributes }}`). A value is never rendered as Twig, and no template is built from it.
+
+Each value is converted to the declared type of its `PropDoc` (`TypedValueConverter`): scalars (text from a form is converted, `"12"` to 12), backed enums by value and unit enums by case name, dates from ISO 8601 text, objects with constructor-promoted or settable properties (Symfony Serializer, property-info, phpdoc), lists and maps item by item, unions by the member the value matches (an error when several different ones do), nullable. A prop with `allowedValues` is checked against them. An empty form field is null where the type allows it and is not text. A prop typed `mixed`, `object`, `callable`, an unknown class, or an interface or abstract class without `#[DiscriminatorMap]` is not editable: posting it is a 422.
+
+A refusal is a 422 and never a 500: the bare page of the library lists each error as a prop path and a message (`vehicle.price`, `vehicles[1].name`), or `{"errors": [{"path", "message"}]}` when the request accepts `application/json`. A component that throws with values of the right types is a 422 too, with an empty path. Every answer (200, 422, 403, 404) carries `X-Robots-Tag: noindex, nofollow`, `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
+
+```json
+{"errors": [{"path": "vehicle.price", "message": "Expected float, got string."}]}
+```
+
+### Fields of a host
+
+`PostedValuesNormalizerInterface` (autoconfigured, tag `ux_showcase.posted_values_normalizer`, optional `priority`, highest first) runs on the posted values before they are checked, so a host can map its own form fields to props (a picked image id to an object) and normalise types:
+
+```php
+interface PostedValuesNormalizerInterface
+{
+    /** @param array<string, mixed> $values  @return array<string, mixed> */
+    public function normalize(array $values, PostedValuesContext $context): array;
+}
+```
+
+`PostedValuesContext` gives the library, the `Example`, the `ComponentDoc`, the `Request` and `fromForm`. A step takes its own fields out of the array; what is left must be props. An object it puts in is kept as it is when it satisfies the declared type, including an interface; values from the request are never turned into an interface, `mixed` or `object`.
+
+### Prefill
+
+`PreviewPrefill::forExample($example)` gives the props of an example as JSON-safe values (objects to arrays, enums to their value, dates to ISO 8601), for the props that can be posted back; posting them renders the example as it was. `isEditable($propDoc)` says whether a prop can be tried.
 
 ## Props
 

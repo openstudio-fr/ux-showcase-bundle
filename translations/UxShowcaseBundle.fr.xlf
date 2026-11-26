@@ -114,6 +114,10 @@
                 <source>component.no_examples</source>
                 <target>Ce composant n'a pas encore d'exemple.</target>
             </trans-unit>
+            <trans-unit id="preview.errors.title" resname="preview.errors.title">
+                <source>preview.errors.title</source>
+                <target>Ces valeurs ne peuvent pas être prévisualisées</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

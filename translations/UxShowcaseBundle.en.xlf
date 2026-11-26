@@ -114,6 +114,10 @@
                 <source>component.no_examples</source>
                 <target>This component has no example yet.</target>
             </trans-unit>
+            <trans-unit id="preview.errors.title" resname="preview.errors.title">
+                <source>preview.errors.title</source>
+                <target>These values cannot be previewed</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

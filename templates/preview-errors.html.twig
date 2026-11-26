@@ -1,0 +1,8 @@
+<section class="showcase-preview-errors" role="alert" data-showcase-errors>
+    <h1>{{ 'preview.errors.title'|trans({}, 'UxShowcaseBundle') }}</h1>
+    <ul>
+    {% for error in errors %}
+        <li>{% if error.path != '' %}<code data-path="{{ error.path }}">{{ error.path }}</code> {% endif %}{{ error.message }}</li>
+    {% endfor %}
+    </ul>
+</section>

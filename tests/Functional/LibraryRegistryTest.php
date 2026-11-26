@@ -156,6 +156,8 @@ final class LibraryRegistryTest extends TestCase
      */
     private function registry(?array $configuration = null): ShowcaseRegistry
     {
+        // One kernel per test: a second one would leave the exception handler of the first registered.
+        $this->kernel?->shutdown();
         $this->kernel = Configuration::kernel(configuration: $configuration ?? []);
         $this->kernel->boot();
         $container = $this->kernel->getContainer()->get('test.service_container');
