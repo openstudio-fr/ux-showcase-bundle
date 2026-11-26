@@ -1,0 +1,52 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+permissions:
+    contents: read
+
+jobs:
+    quality:
+        name: PHP ${{ matrix.php }}, Symfony ${{ matrix.symfony }}, UX ${{ matrix.ux }}${{ matrix.dependencies == 'lowest' && ' (lowest)' || '' }}
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - { php: '8.3', symfony: '7.4.*', ux: '2.36.*', dependencies: highest }
+                    - { php: '8.4', symfony: '7.4.*', ux: '3.*', dependencies: highest }
+                    - { php: '8.4', symfony: '8.*', ux: '3.*', dependencies: highest }
+                    - { php: '8.5', symfony: '7.4.*', ux: '3.*', dependencies: highest }
+                    - { php: '8.5', symfony: '8.*', ux: '3.*', dependencies: highest }
+                    - { php: '8.3', symfony: '7.4.*', ux: '2.36.*', dependencies: lowest }
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  coverage: none
+                  tools: composer:v2
+
+            - name: Pin Symfony and UX
+              env:
+                  SYMFONY: ${{ matrix.symfony }}
+                  UX: ${{ matrix.ux }}
+              run: |
+                  composer config --no-plugins allow-plugins.symfony/flex true
+                  composer require --no-update "symfony/ux-twig-component:${UX}"
+                  composer config extra.symfony.require "${SYMFONY}"
+                  composer require --no-update --dev symfony/flex
+
+            - name: Allow the oldest Twig despite its advisories
+              if: matrix.dependencies == 'lowest'
+              run: composer config audit.block-insecure false
+
+            - name: Install dependencies
+              run: composer update --no-interaction --no-progress ${{ matrix.dependencies == 'lowest' && '--prefer-lowest --prefer-stable' || '' }}
+
+            - name: Check the quality gate
+              run: composer check
