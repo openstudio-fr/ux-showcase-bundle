@@ -19,6 +19,10 @@ use OpenStudio\UxShowcaseBundle\Example\ExampleRenderer;
 use OpenStudio\UxShowcaseBundle\Example\PhpExampleProvider;
 use OpenStudio\UxShowcaseBundle\Example\PreviewOptionsResolver;
 use OpenStudio\UxShowcaseBundle\Library\ComponentCatalog;
+use OpenStudio\UxShowcaseBundle\Props\ClassPropsReader;
+use OpenStudio\UxShowcaseBundle\Props\ComponentDocumentation;
+use OpenStudio\UxShowcaseBundle\Props\TemplatePropsReader;
+use OpenStudio\UxShowcaseBundle\Props\TemplateSourceReader;
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -48,6 +52,17 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(ShowcaseRegistry::class)
         ->args([tagged_iterator('ux_showcase.library'), tagged_iterator('ux_showcase.example_provider')]);
+
+    // The template first: it holds the descriptions; the class then refines the types.
+    $services->set(TemplateSourceReader::class)->args([service('twig')]);
+    $services->set(TemplatePropsReader::class)
+        ->args([service(ComponentCatalog::class), service('twig'), service(TemplateSourceReader::class)])
+        ->tag('ux_showcase.props_reader', ['priority' => 20]);
+    $services->set(ClassPropsReader::class)
+        ->args([service(ComponentCatalog::class)])
+        ->tag('ux_showcase.props_reader', ['priority' => 10]);
+    $services->set(ComponentDocumentation::class)
+        ->args([service(ComponentCatalog::class), tagged_iterator('ux_showcase.props_reader')]);
 
     $services->set(ExampleCodeGenerator::class);
     $services->set(PreviewOptionsResolver::class)->args([service(ShowcaseConfiguration::class)]);

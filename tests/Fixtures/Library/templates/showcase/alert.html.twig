@@ -1,0 +1,7 @@
+{% props
+    ## html The message, as markup
+    message,
+    ## string Colour of the box
+    type = 'info'
+%}
+<div class="alert alert-{{ type }}">{{ message|raw }}</div>

@@ -27,6 +27,7 @@ use OpenStudio\UxShowcaseBundle\Library\ComponentCatalog;
 use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
 use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
 use OpenStudio\UxShowcaseBundle\Library\ConfiguredLibrary;
+use OpenStudio\UxShowcaseBundle\Props\PropsReaderInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
@@ -76,6 +77,7 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
         $services->set(FixtureLoader::class)->args([$config['fixtures_directory']]);
 
         $builder->registerForAutoconfiguration(ComponentLibraryInterface::class)->addTag('ux_showcase.library');
+        $builder->registerForAutoconfiguration(PropsReaderInterface::class)->addTag('ux_showcase.props_reader');
         $builder->registerForAutoconfiguration(ExampleProviderInterface::class)->addTag('ux_showcase.example_provider');
         $builder->registerAttributeForAutoconfiguration(
             AsShowcaseExample::class,

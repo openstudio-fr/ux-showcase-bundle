@@ -224,6 +224,73 @@ The wrapper is on unless a level turns it off.
 - `ExampleCodeGenerator::generate($example)`: `<twig:App:Button label="Save" :disabled="true" />`, props in declared
   order; a free example gives its source.
 
+## Props
+
+`ComponentDocumentation::get('App:Button')` returns the `ComponentDoc` of a component: its description, its props
+(`PropDoc`: name, type as a string, default, description, required, allowed values, where it was read) and its blocks
+(`BlockDoc`). It is the merge of a chain of readers (`PropsReaderInterface`, autoconfigured with the tag
+`ux_showcase.props_reader`, highest priority first); an application adds its own. The two built-in readers are the
+template (priority 20) and the class (priority 10). `ComponentDoc`, `PropDoc`, `BlockDoc`, `PropsReaderInterface` and
+`ComponentDocumentation` are `@api`.
+
+### In a template
+
+```twig
+{# @description A button. #}
+{% props
+    ## string Text of the button
+    label,
+    ## ?string Smaller text under the label
+    hint = null,
+    ## list<string> Tags shown as badges,
+    ## one per line
+    tags = ['new', 'sale'],
+    variant = 'primary'
+%}
+{# @block content Content after the label #}
+<button class="btn btn-{{ variant }}">{{ label }}{% block content %}{% endblock %}</button>
+```
+
+- `{% props %}`: the names and the defaults. A literal default (string, number, `true`, `false`, `null`, list, map) gives
+  its value; any other expression (`'now'|date('Y')`) gives "has a default" and a null value.
+- `## <type> <description>` above a prop: the type is the first word, or a whole generic (`array<string, int>`,
+  `list<array{name: string}>`), a union without spaces (`string|null`) or with them; the rest, over several lines when
+  needed, is the description. It is read by the bundle from the tokens of Twig (`Token::getDocumentation()`, Twig 3.29
+  or later, an experimental API), the same way on every version of TwigComponent. An older Twig gives no description and
+  no error.
+- Older comments, still read: `{# @prop name type description #}`, `{# @prop list.field type description #}` (a field of
+  the rows of a list, in `PropDoc::$fields`), `{# @description ... #}`, `{# @block name description #}`.
+- Blocks: every `{% block name %}` of the template.
+- A prop with no default and no type that accepts null is required. A prop whose type is not written has the type `mixed`.
+
+Do not write a `<twig:` tag in a `##` line while TwigComponent 2.x is supported: it breaks the rendering of the
+template there (fixed in TwigComponent 3.6).
+
+### In a class
+
+For a class component (`#[AsTwigComponent]`, `#[AsLiveComponent]`) the class reader adds, from reflection only, so a
+component with no documentation still gets a table:
+
+- the public properties, with their type (native, or `@var` with generics: `list<VehicleDto>`, unions, enums), their
+  default and nullability, through `symfony/property-info` and its PHPStan extractor; the first paragraph of their docblock is
+  the description;
+- the parameters of `mount()`, with the type of their `@param` when there is one;
+- the allowed values of an enum type (the values of a backed enum, the names otherwise), and the ones a `#[PreMount]`
+  method gives with `$resolver->setAllowedValues('name', [...])`. The method is read, never run, so only a literal list
+  is found; a computed list (`range()`, a constant, `Enum::cases()`) is not.
+
+What is not a prop: a public property that `mount()` assigns and that is not one of its parameters (it is computed from
+the arguments, found by reading the source of `mount()`), a property or a method marked `#[ExposeInTemplate]` that is
+not public (a variable for the template), and the properties of the `symfony/ux-*` traits (`isValidated`,
+`validatedFields`, `formValues`...). An anonymous component has no class.
+
+### Merge rule
+
+When two readers know the same prop, in priority order: the description and the allowed values come from the first
+reader that has some; the type and the default come from the last reader that knows them (so the type of the class wins
+over the one of a comment, and `mixed` never erases a known type); the sources add up; `required` is worked out again
+from the merged default and type. Props and blocks keep the order of the first reader that knows them.
+
 ## Quality
 
 ```bash

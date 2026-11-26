@@ -18,6 +18,11 @@ namespace OpenStudio\UxShowcaseBundle\Exception;
  */
 final class UnknownComponentException extends ShowcaseException
 {
+    public static function forComponent(string $component): self
+    {
+        return new self(\sprintf('The component "%s" is not a TwigComponent of this application.', $component));
+    }
+
     public static function forExample(string $slug, string $component, ?string $library): self
     {
         return new self(null === $library

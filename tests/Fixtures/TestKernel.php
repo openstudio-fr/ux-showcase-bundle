@@ -17,6 +17,7 @@ use OpenStudio\UxShowcaseBundle\Example\ExampleCodeGenerator;
 use OpenStudio\UxShowcaseBundle\Example\ExampleRenderer;
 use OpenStudio\UxShowcaseBundle\Example\FixtureLoader;
 use OpenStudio\UxShowcaseBundle\OpenStudioUxShowcaseBundle;
+use OpenStudio\UxShowcaseBundle\Props\ComponentDocumentation;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -144,10 +145,13 @@ final class TestKernel extends Kernel
 
             $services->load('OpenStudio\\UxShowcaseBundle\\Tests\\Fixtures\\Library\\Component\\', $library.'/Component/')->autoconfigure();
             $services->set('logger', NullLogger::class);
+            // LiveComponent wires its validator when a component uses ValidatableComponentTrait; nothing validates here.
+            $services->set('validator', \stdClass::class);
             $services->set(Library\ServiceLibrary::class)->autoconfigure();
+            $services->set(Library\ChainReader::class)->autoconfigure();
             $services->set(Library\Example\ArticleCard::class)->autowire()->autoconfigure();
             // Public aliases: the services themselves are private and inlined or removed when nothing else uses them.
-            foreach ([ShowcaseRegistry::class, ExampleRenderer::class, ExampleCodeGenerator::class, FixtureLoader::class] as $id) {
+            foreach ([ComponentDocumentation::class, ShowcaseRegistry::class, ExampleRenderer::class, ExampleCodeGenerator::class, FixtureLoader::class] as $id) {
                 $services->alias('test.'.$id, $id)->public();
             }
         }

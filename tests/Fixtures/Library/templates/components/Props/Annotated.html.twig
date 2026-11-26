@@ -1,0 +1,13 @@
+{# @description A table of rows, with a header and a footer. #}
+{# @prop caption string Text above the table #}
+{# @prop count ?int How many rows to show #}
+{# @prop rows list<array{name: string, id: int}> The rows of the table #}
+{# @prop rows.name string Name shown in the first column #}
+{# @prop rows.id int Identifier of the row #}
+{# @block header Content above the rows #}
+{% props caption, count = 10, rows = [], other = true %}
+<table>
+    {% block header %}{% endblock %}
+    {% for row in rows %}<tr><td>{{ row.name }}</td></tr>{% endfor %}
+    {% block footer %}{% endblock %}
+</table>
