@@ -22,6 +22,7 @@ use Twig\Node\Expression\Unary\PosUnary;
 use Twig\Node\Node;
 use Twig\Token;
 use Twig\TokenParser\AbstractTokenParser;
+use Twig\TokenStream;
 
 /**
  * {% showcase_example 'slug' [titled 'Title'] [with { prop: 'value' }] [options { background: 'dark' }] %}…{% end_showcase_example %}
@@ -90,10 +91,31 @@ final class ExampleTokenParser extends AbstractTokenParser
         }
 
         $stream->expect(Token::BLOCK_END_TYPE);
-        $this->parser->subparse(fn (Token $end): bool => $end->test('end_'.$this->getTag()), true);
-        $stream->expect(Token::BLOCK_END_TYPE);
+        $this->skipBody($stream);
 
         return new ExampleNode($this->free, $slug, $title, $props, $options, $line);
+    }
+
+    /**
+     * The body is markup for the component, rendered later by the application: it is not parsed here, so the blocks it
+     * holds (`<twig:block>` becomes `{% block %}`) never meet the ones of another example of the same file.
+     */
+    private function skipBody(TokenStream $stream): void
+    {
+        $end = 'end_'.$this->getTag();
+        $line = $stream->getCurrent()->getLine();
+        while (!$stream->isEOF()) {
+            if ($stream->test(Token::BLOCK_START_TYPE) && $stream->look()->test(Token::NAME_TYPE, $end)) {
+                $stream->next();
+                $stream->next();
+                $stream->expect(Token::BLOCK_END_TYPE);
+
+                return;
+            }
+            $stream->next();
+        }
+
+        throw new SyntaxError(\sprintf('Unexpected end of file: "%s" needs its "%s" tag.', $this->getTag(), $end), $line, $stream->getSourceContext());
     }
 
     /**

@@ -49,12 +49,56 @@ final class ExampleFileLintTest extends TestCase
         self::assertSame(0, $status, $display);
     }
 
+    public function testLintTwigAcceptsTheSameNamedBlockInSeveralExamples(): void
+    {
+        [$status, $display] = $this->lint(<<<'TWIG'
+            {% showcase_example 'one' with { label: 'Save' } %}
+                <twig:Button label="Save"><twig:block name="footer">Sent</twig:block></twig:Button>
+            {% end_showcase_example %}
+            {% showcase_example 'two' with { label: 'Send' } %}
+                <twig:Button label="Send"><twig:block name="footer">Sent</twig:block></twig:Button>
+            {% end_showcase_example %}
+            {% showcase_free 'page' %}
+                <twig:Some:Component><twig:block name="footer">Sent</twig:block></twig:Some:Component>
+            {% end_showcase_free %}
+            TWIG);
+
+        self::assertSame(0, $status, $display);
+    }
+
+    public function testLintTwigAcceptsBareBlocksAsTheReadmeShowsThem(): void
+    {
+        [$status, $display] = $this->lint(<<<'TWIG'
+            {% showcase_example 'one' with { label: 'Save' } %}
+                <span class="icon">&rarr;</span>
+                <twig:block name="footer">Sent</twig:block>
+            {% end_showcase_example %}
+            {% showcase_example 'two' with { label: 'Send' } %}
+                <twig:block name="footer">Sent</twig:block>
+            {% end_showcase_example %}
+            TWIG);
+
+        self::assertSame(0, $status, $display);
+    }
+
+    public function testTheKernelRunsTheComponentPreLexer(): void
+    {
+        $twig = $this->twig();
+        $tokens = $twig->tokenize(new \Twig\Source('<twig:Button><twig:block name="footer">x</twig:block></twig:Button>', 't'));
+        $names = [];
+        while (!$tokens->isEOF()) {
+            $names[] = $tokens->next()->getValue();
+        }
+
+        self::assertContains('block', $names);
+    }
+
     public function testLintTwigRejectsAnUnclosedTag(): void
     {
         [$status, $display] = $this->lint("{% showcase_example 'primary' %}\n<p>x</p>\n");
 
         self::assertSame(1, $status, $display);
-        self::assertStringContainsString('Unexpected token "end of template"', $display);
+        self::assertStringContainsString('needs its "end_showcase_example" tag', $display);
     }
 
     public function testLintTwigRejectsAPropThatIsNotALiteral(): void
