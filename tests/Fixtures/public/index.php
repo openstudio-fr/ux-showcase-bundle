@@ -23,7 +23,7 @@ use Symfony\Component\HttpFoundation\Request;
 
 require dirname(__DIR__, 3).'/vendor/autoload.php';
 
-$kernel = new TestKernel(true, Configuration::demo(), withLibrary: true, cleanCache: false);
+$kernel = new TestKernel(true, Configuration::props(), withLibrary: true, cleanCache: false);
 $request = Request::createFromGlobals();
 $response = $kernel->handle($request);
 $response->send();

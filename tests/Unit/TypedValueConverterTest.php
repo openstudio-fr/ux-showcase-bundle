@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace OpenStudio\UxShowcaseBundle\Tests\Unit;
 
 use OpenStudio\UxShowcaseBundle\Preview\InvalidPostedValuesException;
+use OpenStudio\UxShowcaseBundle\Preview\PropShape;
 use OpenStudio\UxShowcaseBundle\Preview\TypedValueConverter;
 use OpenStudio\UxShowcaseBundle\Preview\ValueSerializer;
 use OpenStudio\UxShowcaseBundle\Props\PropDoc;
@@ -186,6 +187,100 @@ final class TypedValueConverterTest extends TestCase
         self::assertSame('2026-11-26T09:00:00+00:00', $date->setTimezone(new \DateTimeZone('UTC'))->format('c'));
         self::assertInstanceOf(\DateTimeInterface::class, $converter->convert('2026-11-26', PropDoc::create('p', \DateTimeInterface::class), false));
         $this->expectRefusal('p', 'ISO 8601', 'next monday', '\DateTimeImmutable');
+    }
+
+    /**
+     * @return iterable<string, array{string, string|null, bool, list<bool|int|string>, bool}> type, kind, nullable, choices, numeric text
+     */
+    public static function shapes(): iterable
+    {
+        yield 'string' => ['string', PropShape::TEXT, false, [], false];
+        yield 'nullable string' => ['?string', PropShape::TEXT, true, [], false];
+        yield 'int' => ['int', PropShape::INTEGER, false, [], false];
+        yield 'int range' => ['int<0, 10>', PropShape::INTEGER, false, [], false];
+        yield 'float' => ['float', PropShape::NUMBER, false, [], false];
+        yield 'int or float' => ['int|float|null', PropShape::NUMBER, true, [], false];
+        yield 'bool' => ['bool', PropShape::BOOLEAN, false, [], false];
+        yield 'literal strings' => ["'sm'|'md'|'lg'", PropShape::CHOICE, false, ['sm', 'md', 'lg'], false];
+        yield 'literal strings or null' => ["'sm'|'md'|null", PropShape::CHOICE, true, ['sm', 'md'], false];
+        yield 'literal ints' => ['1|2|3', PropShape::CHOICE, false, [1, 2, 3], false];
+        yield 'one literal' => ["'only'", PropShape::CHOICE, false, ['only'], false];
+        yield 'backed enum' => [self::LAYOUT, PropShape::CHOICE, false, ['grid', 'rows'], false];
+        yield 'nullable unit enum' => ['?'.self::ALIGN, PropShape::CHOICE, true, ['Left', 'Right'], false];
+        yield 'int or string' => ['int|string', PropShape::TEXT, false, [], true];
+        yield 'string or null' => ['string|null', PropShape::TEXT, true, [], false];
+        yield 'date' => ['?\DateTimeImmutable', PropShape::TEXT, true, [], false];
+        yield 'list' => ['list<string>', PropShape::JSON, false, [], false];
+        yield 'map' => ['array<string, int>', PropShape::JSON, false, [], false];
+        yield 'object' => ['\\'.self::CARD, PropShape::JSON, false, [], false];
+        yield 'list of objects or null' => ['list<\\'.self::CARD.'>|null', PropShape::JSON, true, [], false];
+        yield 'object or text' => ['\\'.self::CARD.'|string', PropShape::JSON, false, [], false];
+        yield 'mixed' => ['mixed', null, false, [], false];
+        yield 'object type' => ['?object', null, false, [], false];
+        yield 'interface without a map' => [self::PLAIN, null, false, [], false];
+    }
+
+    /**
+     * @param list<bool|int|string> $choices
+     */
+    #[DataProvider('shapes')]
+    public function testWhichControlATypeAsksFor(string $type, ?string $kind, bool $nullable, array $choices, bool $numeric): void
+    {
+        $shape = $this->converter()->shape(PropDoc::create('p', $type));
+
+        if (null === $kind) {
+            self::assertNull($shape);
+
+            return;
+        }
+
+        self::assertNotNull($shape);
+        self::assertSame([$kind, $nullable, $choices, $numeric], [$shape->kind, $shape->nullable, $shape->choices, $shape->numeric]);
+    }
+
+    public function testAllowedValuesAreTheChoicesWhateverTheType(): void
+    {
+        $shape = $this->converter()->shape(PropDoc::create('type', 'string', allowedValues: ['info', null, 'warning']));
+
+        self::assertNotNull($shape);
+        self::assertSame([PropShape::CHOICE, true, ['info', 'warning']], [$shape->kind, $shape->nullable, $shape->choices]);
+    }
+
+    public function testNullIsNotRefusedByTheAllowedValuesOfAPropThatTakesNull(): void
+    {
+        $nullable = PropDoc::create('layout', '?string', allowedValues: ['grid', 'rows']);
+        self::assertNull($this->converter()->convert('', $nullable, true), 'the empty choice of a form');
+        self::assertNull($this->converter()->convert(null, $nullable, false));
+
+        $this->expectException(InvalidPostedValuesException::class);
+        $this->converter()->convert(null, PropDoc::create('layout', 'string', allowedValues: ['grid', 'rows']), false);
+    }
+
+    public function testTheJsonOfAFormFieldIsDecodedWithTheTypesOfJson(): void
+    {
+        $prop = PropDoc::create('vehicle', '\\'.self::CARD);
+
+        $card = $this->converter()->convert('{"name":"Golf","price":3}', $prop, true);
+
+        self::assertInstanceOf(VehicleCard::class, $card);
+        self::assertSame(3.0, $card->price, 'an int is a float where a float is declared, as in a JSON body');
+        self::assertSame(['a', 'b'], $this->converter()->convert('["a","b"]', PropDoc::create('tags', 'list<string>'), true));
+    }
+
+    public function testAFormFieldThatIsNotJsonIsRefusedAtItsPropUnlessTheTypeTakesText(): void
+    {
+        try {
+            $this->converter()->convert('{nope', PropDoc::create('vehicle', '\\'.self::CARD), true);
+            self::fail('Expected a refusal.');
+        } catch (InvalidPostedValuesException $exception) {
+            self::assertSame('vehicle', $exception->errors[0]->path);
+            self::assertStringStartsWith('Not valid JSON', $exception->errors[0]->message);
+        }
+    }
+
+    public function testATypeThatTakesObjectsOrTextKeepsTheTextOfAFormAsIs(): void
+    {
+        self::assertSame('plain words', $this->converter()->convert('plain words', PropDoc::create('p', '\\'.self::CARD.'|string'), true));
     }
 
     public function testAnAllowedValuesListOfThePropIsEnforced(): void

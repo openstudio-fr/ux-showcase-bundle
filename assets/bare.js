@@ -28,6 +28,16 @@
         return Math.ceil(document.body.getBoundingClientRect().bottom + window.pageYOffset + (parseFloat(style.marginBottom) || 0));
     }
 
+    // A document put in the frame with `srcdoc` (the form that tries values) has the origin "null" for its location, but
+    // the origin of the page around it: ask that page.
+    function targetOrigin() {
+        try {
+            return window.parent.location.origin;
+        } catch (error) {
+            return window.location.origin;
+        }
+    }
+
     function report() {
         var current = height();
         var color = background();
@@ -36,7 +46,7 @@
         }
         lastHeight = current;
         lastBackground = color;
-        window.parent.postMessage({ type: 'ux-showcase:frame', height: current, background: color }, window.location.origin);
+        window.parent.postMessage({ type: 'ux-showcase:frame', height: current, background: color }, targetOrigin());
     }
 
     report();

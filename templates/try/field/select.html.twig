@@ -1,0 +1,6 @@
+<select id="{{ field.id }}" name="{{ field.name }}" aria-describedby="{{ field.describedBy }}" data-try-control>
+    {% if field.nullable %}<option value="" data-json="null"{% if not field.hasValue or field.value is null %} selected{% endif %}>{{ 'try.none'|trans({}, 'UxShowcaseBundle') }}</option>{% endif %}
+    {% for choice in field.choices %}
+        <option value="{{ choice.value is same as(true) ? '1' : (choice.value is same as(false) ? '0' : choice.value) }}" data-json="{{ choice.json }}"{% if choice.selected %} selected{% endif %}>{{ choice.label }}</option>
+    {% endfor %}
+</select>

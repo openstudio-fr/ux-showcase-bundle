@@ -67,3 +67,27 @@
 .showcase-table thead th { color: #495057; background: #f8f9fa; }
 .showcase-field th { padding-left: 1.75rem; font-weight: 400; }
 .showcase-blocks { padding-left: 1.25rem; }
+
+.showcase-preview-with-try { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: 1rem; align-items: start; }
+.showcase-preview-main { min-width: 0; }
+@media (max-width: 1100px) { .showcase-preview-with-try { grid-template-columns: minmax(0, 1fr); } }
+
+.showcase-try { padding: 0.75rem 1rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.375rem; }
+.showcase-try h4 { margin-bottom: 0.5rem; font-size: 0.9375rem; }
+.showcase-try-field { margin-bottom: 0.75rem; }
+.showcase-try-field label { display: block; margin-bottom: 0.125rem; font-weight: 600; font-size: 0.8125rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.showcase-try-field input[type="text"], .showcase-try-field input[type="number"], .showcase-try-field select, .showcase-try-field textarea { width: 100%; padding: 0.25rem 0.5rem; font: inherit; color: #212529; background: #fff; border: 1px solid #adb5bd; border-radius: 0.25rem; }
+.showcase-try-field textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8125rem; resize: vertical; }
+.showcase-try-field[data-field-type="checkbox"] label { display: inline; margin-right: 0.5rem; }
+.showcase-try-field input:focus-visible, .showcase-try-field select:focus-visible, .showcase-try-field textarea:focus-visible, .showcase-try-actions .showcase-button:focus-visible { outline: 2px solid #0a58ca; outline-offset: 1px; }
+.showcase-try-field [aria-invalid="true"] { border-color: #b02a37; box-shadow: 0 0 0 1px #b02a37; }
+.showcase-try-hint { margin: 0.125rem 0 0; font-size: 0.8125rem; color: #6c757d; }
+.showcase-try-error, .showcase-try-alert { margin: 0.25rem 0 0; font-size: 0.8125rem; color: #842029; white-space: pre-line; }
+.showcase-try-error[hidden], .showcase-try-alert[hidden] { display: none; }
+.showcase-try-alert { padding: 0.375rem 0.5rem; background: #f8d7da; border: 1px solid #f1aeb5; border-radius: 0.25rem; }
+.showcase-try-readonly { margin-bottom: 0.75rem; font-size: 0.8125rem; }
+.showcase-try-readonly h5 { margin: 0 0 0.25rem; font-size: 0.8125rem; color: #495057; }
+.showcase-try-readonly dl { margin: 0; }
+.showcase-try-readonly dd { margin: 0 0 0.375rem; }
+.showcase-try-actions { display: flex; gap: 0.5rem; }
+.showcase [hidden] { display: none; }

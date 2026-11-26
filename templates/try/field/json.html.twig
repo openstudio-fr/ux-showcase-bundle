@@ -1,0 +1,1 @@
+<textarea id="{{ field.id }}" name="{{ field.name }}" rows="{{ min(max(field.json|split("\n")|length, 3), 14) }}" spellcheck="false" autocomplete="off" aria-describedby="{{ field.describedBy }}" data-try-control>{{ field.json }}</textarea>

@@ -231,7 +231,7 @@ Every route sits under the prefix you imported them with, behind the access chec
 | Name | Path | Screen |
 |---|---|---|
 | `ux_showcase_index` | `/` | libraries, then groups: components with a status badge (`ready`, `waiting`; `hidden` ones are absent) and documentation pages |
-| `ux_showcase_component` | `/{library}/{component}` | the examples of a component, each with the tabs Preview, Code and Props |
+| `ux_showcase_component` | `/{library}/{component}` | the examples of a component, each with the tabs Preview, Code and Props, and the Try form beside the frame |
 | `ux_showcase_doc` | `/{library}/_docs/{slug}` | a documentation page: Preview and Code, no Props |
 | `ux_showcase_preview` | `/{library}/{component}/{slug}/preview` | the bare page of one example, loaded by its frame |
 | `ux_showcase_preview_link`, `ux_showcase_preview_try` | see "Trying other values" | signed preview of tried values |
@@ -327,13 +327,13 @@ Outside debug the registry (components, examples) is built once and kept in a fi
 
 ### Seeing it in a browser
 
-`tests/Fixtures/public/index.php` serves the test library at `/_showcase/` with debug on:
+`tests/Fixtures/public/index.php` serves the test library and the `props` one (a component of each kind of prop to try) at `/_showcase/` with debug on:
 `php -S 127.0.0.1:8000 tests/Fixtures/public/index.php`, or an `index.php` of your own at the root of the clone that
 requires it.
 
 ## Trying other values
 
-The component page lets a visitor try other prop values; the server side is a signed preview (the form itself is a screen concern).
+The component page lets a visitor try other prop values: the form is described in "The Try form" below, the server side is a signed preview.
 
 | Name | Method and path | Role |
 |---|---|---|
@@ -379,6 +379,70 @@ interface PostedValuesNormalizerInterface
 ```
 
 `PostedValuesContext` gives the library, the `Example`, the `ComponentDoc`, the `Request` and `fromForm`. A step takes its own fields out of the array; what is left must be props. An object it puts in is kept as it is when it satisfies the declared type, including an interface; values from the request are never turned into an interface, `mixed` or `object`.
+
+### The Try form
+
+Each example of a component (not a free one) has a form beside its frame, built from the props table of the component and
+prefilled from `PreviewPrefill` (the value of the example, else the default of the prop). One field per prop, by its declared type:
+
+| Type | Field (`data-field-type`) |
+|---|---|
+| `string`, `html`, dates (ISO 8601 text), `int\|string` | `text` (a number typed in an `int\|string` field is sent as a number) |
+| `int`, `float` | `number` |
+| `bool` | `checkbox` (a hidden `0` before it: an unticked box posts false) |
+| backed or unit enum, union of literals (`'sm'\|'md'`), `allowedValues` | `select` (an empty choice when the prop takes null) |
+| object, list, map, union of objects | `json`: a textarea, pretty-printed |
+| `mixed`, `object`, unknown class, interface without discriminator | no field: listed read-only with the reason |
+
+With JavaScript the values are sent as JSON 400 ms after the last change, to the signed address (`X-CSRF-Token`), and the HTML that
+comes back is put in the frame (`srcdoc`: the height reporting works as for the first load). Only the props the example sets, and
+those the visitor changed, are sent. A JSON field that is not JSON is refused in the page, nothing is sent. A 422 puts each error
+next to the field of the first segment of its path (`vehicle.price` goes to `vehicle`, with the full path in the message; the
+fields have `aria-invalid` and `aria-describedby`), an error with no field goes in an alert, and the frame keeps the last good
+preview. A 404 or a 403 asks `preview-link` for a new address and token and sends again once; the address is also renewed
+when it is less than two minutes from its expiry. "Reset" puts the values of the example back and reloads the frame; the form is
+not stored (`autocomplete="off"`), a reload shows the example's values.
+
+Without JavaScript the same form posts, form-urlencoded with `_token`, to the signed address, in the frame (`target`), and the visible
+"Show" button sends it (the script hides it). A JSON field is posted as its text and decoded with the types of JSON. Differences from the
+script: every field is posted, and an empty field of a nullable text prop is an empty string, not null.
+
+#### Field types of a host
+
+`Screen\TryFieldTypeInterface` (autoconfigured, tag `ux_showcase.try_field_type`, optional `priority`: highest first; the built-in
+ones are at -100) says how a prop is drawn. For a prop, the first type that supports it wins; none: read-only.
+
+```php
+interface TryFieldTypeInterface
+{
+    public function getName(): string;                 // unique, stable: data-field-type="..." (text, number, checkbox, select, json are taken)
+    public function supports(PropDoc $prop): bool;
+    public function getTemplate(): string;             // Twig template of the control only
+    public function getModuleUrl(): ?string;           // ES module, loaded only when a field of this type is on the page
+}
+```
+
+The template gets `field` (`TryField`: `prop`, `name`, `id`, `describedBy`, `value`, `hasValue`, `json`, `kind`, `nullable`, `choices`) and `try`.
+Its control has `id="{{ field.id }}"`, `name="{{ field.name }}"`, `aria-describedby="{{ field.describedBy }}"` and `data-try-control`; the label,
+the hint and the error are drawn around it. The field posts under the name of the prop: a host maps the value in a
+`PostedValuesNormalizerInterface` (a picked image id to the object the prop needs), with and without JavaScript.
+
+The module is an ES module, imported once, whose default export (or `init`) is called with the field of each use:
+
+```js
+export default function (field) {
+    field.element;      // the wrapper of the field
+    field.name;         // the prop
+    field.initial;      // the value of the example (JSON-safe), undefined when there is none
+    field.handle({ read: () => value, write: (v) => { /* put v in the control */ } }); // how the form reads and sets the value
+    field.notify();     // the value changed: the form sends it after the 400 ms
+    field.getValue();   // read()
+    field.setValue(v);  // write(v), without sending
+    field.setError(text); // text at the field, null to clear (aria-invalid)
+}
+```
+
+Until a module has called `handle()` its field is not sent. A module that fails to load shows an error at its field and the form works without it.
 
 ### Prefill
 

@@ -40,7 +40,10 @@ use OpenStudio\UxShowcaseBundle\Props\TemplatePropsReader;
 use OpenStudio\UxShowcaseBundle\Props\TemplateSourceReader;
 use OpenStudio\UxShowcaseBundle\Screen\ActionResolver;
 use OpenStudio\UxShowcaseBundle\Screen\Assets;
+use OpenStudio\UxShowcaseBundle\Screen\BuiltinTryFieldType;
 use OpenStudio\UxShowcaseBundle\Screen\ExampleViewFactory;
+use OpenStudio\UxShowcaseBundle\Screen\TryFieldRegistry;
+use OpenStudio\UxShowcaseBundle\Screen\TryPanelFactory;
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use OpenStudio\UxShowcaseBundle\Twig\ShowcaseScreenExtension;
@@ -78,7 +81,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(ActionResolver::class)->args([tagged_iterator('ux_showcase.action')]);
     $services->set(ExampleViewFactory::class)
-        ->args([service(ExampleCodeGenerator::class), service(PreviewOptionsResolver::class), service(ActionResolver::class), service('router')]);
+        ->args([service(ExampleCodeGenerator::class), service(PreviewOptionsResolver::class), service(ActionResolver::class), service('router'), service(TryPanelFactory::class)]);
 
     $services->set(ComponentCatalog::class)
         ->args([service('ux.twig_component.component_factory'), service('twig.loader.native_filesystem'), []]);
@@ -119,6 +122,15 @@ return static function (ContainerConfigurator $container): void {
     $services->set(TypedValueConverter::class)->args([service(ValueSerializer::class)]);
     $services->set(PostedValuesResolver::class)->args([service(TypedValueConverter::class), tagged_iterator('ux_showcase.posted_values_normalizer')]);
     $services->set(PreviewPrefill::class)->args([service(ComponentDocumentation::class), service(TypedValueConverter::class), service(ValueSerializer::class)]);
+    // The fields of the Try form: the built-in ones come last (priority -100), a host field type that supports a prop wins.
+    foreach ([['text', ['text']], ['number', ['integer', 'number']], ['checkbox', ['boolean']], ['select', ['choice']], ['json', ['json']]] as [$name, $kinds]) {
+        $services->set('ux_showcase.try_field.'.$name, BuiltinTryFieldType::class)
+            ->args([$name, '@OpenStudioUxShowcase/try/field/'.$name.'.html.twig', $kinds, service(TypedValueConverter::class)])
+            ->tag('ux_showcase.try_field_type', ['priority' => -100]);
+    }
+    $services->set(TryFieldRegistry::class)->args([tagged_iterator('ux_showcase.try_field_type')]);
+    $services->set(TryPanelFactory::class)
+        ->args([service(PreviewPrefill::class), service(TryFieldRegistry::class), service(TypedValueConverter::class), service(PreviewUrlGeneratorInterface::class), service(PreviewRequestGuard::class), service('router')]);
     $services->set(BarePage::class)
         ->args([service('twig'), service(ShowcaseConfiguration::class), service(ShowcaseRegistry::class), service(ExampleRenderer::class), service(PreviewOptionsResolver::class)]);
     $services->set(TriedPreviewController::class)
