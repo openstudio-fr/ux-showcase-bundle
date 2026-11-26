@@ -543,11 +543,21 @@ final readonly class TypedValueConverter
     {
         return match (true) {
             $exception instanceof PartialDenormalizationException => new InvalidPostedValuesException(array_values(array_map(fn (NotNormalizableValueException $error): PostedValueError => new PostedValueError($error->getPath() ?? $path, $this->messageOf($error)), $exception->getErrors()))),
-            $exception instanceof ExtraAttributesException => new InvalidPostedValuesException(array_values(array_map(static fn (mixed $field): PostedValueError => new PostedValueError($path.'.'.(\is_scalar($field) ? $field : '?'), 'Unknown field.'), $exception->getExtraAttributes()))),
-            $exception instanceof MissingConstructorArgumentsException => new InvalidPostedValuesException(array_values(array_map(static fn (mixed $field): PostedValueError => new PostedValueError($path.'.'.(\is_scalar($field) ? $field : '?'), 'Required field.'), $exception->getMissingConstructorArguments()))),
+            $exception instanceof ExtraAttributesException => new InvalidPostedValuesException(array_values(array_map(static fn (mixed $field): PostedValueError => new PostedValueError(self::fieldPath($path, $field), 'Unknown field.'), $exception->getExtraAttributes()))),
+            $exception instanceof MissingConstructorArgumentsException => new InvalidPostedValuesException(array_values(array_map(static fn (mixed $field): PostedValueError => new PostedValueError(self::fieldPath($path, $field), 'Required field.'), $exception->getMissingConstructorArguments()))),
             $exception instanceof NotNormalizableValueException => InvalidPostedValuesException::at($exception->getPath() ?? $path, $this->messageOf($exception)),
             default => InvalidPostedValuesException::at($path, $exception->getMessage()),
         };
+    }
+
+    /**
+     * Symfony 7.4 names an extra field `color`, 8.x `vehicle.color` when a deserialization path is given.
+     */
+    private static function fieldPath(string $path, mixed $field): string
+    {
+        $field = \is_scalar($field) ? (string) $field : '?';
+
+        return str_starts_with($field, $path.'.') ? $field : $path.'.'.$field;
     }
 
     private function messageOf(NotNormalizableValueException $error): string
