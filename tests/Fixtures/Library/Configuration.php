@@ -64,6 +64,29 @@ final class Configuration
     }
 
     /**
+     * The test libraries and four libraries of examples that go wrong on purpose (`Check:` components): `broken` throws,
+     * `strict` is only broken under --strict (an undefined variable), `deprecated` raises a deprecation, `data` has an
+     * example marked as needing data and a component the library marks.
+     *
+     * @return array<string, mixed>
+     */
+    public static function check(): array
+    {
+        $demo = self::props();
+        /** @var array<string, array<string, mixed>> $libraries */
+        $libraries = $demo['libraries'];
+        $check = ['label' => 'Check', 'prefix' => 'Check', 'bare' => 'showcase/bare.html.twig'];
+        $directory = __DIR__.'/../LibraryCheck';
+
+        return ['libraries' => $libraries + [
+            'broken' => $check + ['examples' => $directory.'/broken'],
+            'strict' => $check + ['examples' => $directory.'/strict'],
+            'deprecated' => $check + ['examples' => $directory.'/deprecated'],
+            'data' => $check + ['examples' => $directory.'/data', 'needs_data' => ['Check:Reads']],
+        ]] + $demo;
+    }
+
+    /**
      * @param array<string, mixed> $configuration the test library when empty
      */
     public static function kernel(bool $debug = true, array $configuration = []): TestKernel

@@ -87,6 +87,7 @@ final class ExampleFileReader
                 \is_string($options['body_class'] ?? null) ? $options['body_class'] : null,
                 \is_bool($options['wrapper'] ?? null) ? $options['wrapper'] : null,
                 \is_int($options['height'] ?? null) ? $options['height'] : null,
+                \is_bool($options['needs_data'] ?? null) ? $options['needs_data'] : null,
             );
             $props = $node->getAttribute('props');
             \assert(\is_array($props));

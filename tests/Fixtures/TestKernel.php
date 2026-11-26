@@ -156,6 +156,7 @@ final class TestKernel extends Kernel
             // LiveComponent wires its validator when a component uses ValidatableComponentTrait; nothing validates here.
             $services->set('validator', \stdClass::class);
             $services->set(Library\ServiceLibrary::class)->autoconfigure();
+            $services->set(Library\TeapotListener::class)->autoconfigure();
             $services->set(Library\ChainReader::class)->autoconfigure();
             $services->set(Library\Action\AddToPageAction::class)->autoconfigure();
             $services->set(Library\Action\KeepExampleAction::class)->autoconfigure();

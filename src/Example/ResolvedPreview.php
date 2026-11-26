@@ -23,6 +23,7 @@ final readonly class ResolvedPreview
         public ?string $bodyClass,
         public bool $wrapper,
         public ?int $height,
+        public bool $needsData = false,
     ) {
     }
 }

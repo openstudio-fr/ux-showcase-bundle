@@ -1,0 +1,4 @@
+{% showcase_example 'fine' %}{% end_showcase_example %}
+{% showcase_free 'missing-include' %}<p>{% include 'nope.html.twig' %}</p>{% end_showcase_free %}
+{% showcase_free 'unknown-filter' %}{{ 'x'|no_such_filter }}{% end_showcase_free %}
+{% showcase_free 'teapot' %}<p>teapot</p>{% end_showcase_free %}

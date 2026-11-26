@@ -30,6 +30,7 @@ final class ConfiguredLibrary implements ComponentLibraryInterface
      * @param list<string>                   $groups           display order of the groups
      * @param array<string, ComponentStatus> $statuses         component name => status; the others are ready
      * @param list<ExampleProviderInterface> $exampleProviders
+     * @param list<string>                   $dataComponents   components whose examples need data (see PreviewOptions::$needsData)
      */
     public function __construct(
         private readonly string $name,
@@ -42,6 +43,7 @@ final class ConfiguredLibrary implements ComponentLibraryInterface
         private readonly PreviewOptions $preview,
         private readonly array $exampleProviders,
         private readonly ComponentCatalog $catalog,
+        private readonly array $dataComponents = [],
     ) {
     }
 
@@ -73,6 +75,7 @@ final class ConfiguredLibrary implements ComponentLibraryInterface
                 $name,
                 false === $position ? ComponentReference::DEFAULT_GROUP : substr($relative, 0, $position),
                 $this->statuses[$name] ?? ComponentStatus::Ready,
+                preview: new PreviewOptions(needsData: \in_array($name, $this->dataComponents, true) ? true : null),
             );
         }
 

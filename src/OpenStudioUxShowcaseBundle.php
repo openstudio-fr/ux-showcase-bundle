@@ -66,8 +66,8 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
      *     viewports: array<string, int|null>,
      *     backgrounds: array<string, array{color: string, html_attributes: array<string, string|int|float|bool>}>,
      *     fixtures_directory: string|null,
-     *     preview: array{background: string|null, body_class: string|null, wrapper: bool, height: int|null},
-     *     libraries: array<string, array{label: string|null, prefix: string|null, examples: string|null, groups: list<string>, wrapper: string|null, bare: string|null, preview: array{background: string|null, body_class: string|null, wrapper: bool|null, height: int|null}, statuses: array<string, ComponentStatus>}>,
+     *     preview: array{background: string|null, body_class: string|null, wrapper: bool, height: int|null, needs_data: bool},
+     *     libraries: array<string, array{label: string|null, prefix: string|null, examples: string|null, groups: list<string>, wrapper: string|null, bare: string|null, preview: array{background: string|null, body_class: string|null, wrapper: bool|null, height: int|null, needs_data: bool|null}, needs_data: list<string>, statuses: array<string, ComponentStatus>}>,
      *     access: array{role: string|null, service: string|null},
      * } $config
      */
@@ -122,6 +122,7 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
                     inline_service(PreviewOptions::class)->args(array_values($library['preview'])),
                     $providers,
                     service(ComponentCatalog::class),
+                    $library['needs_data'],
                 ])
                 ->tag('ux_showcase.library');
         }

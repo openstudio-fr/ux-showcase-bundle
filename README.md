@@ -120,6 +120,7 @@ ux_showcase:
             wrapper: showcase/wrapper.html.twig   # surrounds every example, see "Wrapper"
             bare: showcase/bare.html.twig         # bare page of the preview (used by the preview screen)
             preview: { background: light, wrapper: true }
+            needs_data: ['App:Cart']              # components the check command skips, see "Checking every example"
             statuses:                             # ready by default
                 'App:Form:Date': waiting
                 'App:Legacy:Old': hidden
@@ -212,7 +213,7 @@ It receives `content` (the rendered example), `example`, `library` and `preview`
 <div data-controller="modal-root">{{ content }}</div>
 ```
 
-Preview options (`background`, `body_class`, `wrapper`, `height`) are decided by the first level that sets a field: the
+Preview options (`background`, `body_class`, `wrapper`, `height`, `needs_data`) are decided by the first level that sets a field: the
 screen choice, the example, the component (`ComponentReference::$preview`), the library, then `ux_showcase.preview`.
 The wrapper is on unless a level turns it off.
 
@@ -514,6 +515,68 @@ When two readers know the same prop, in priority order: the description and the 
 reader that has some; the type and the default come from the last reader that knows them (so the type of the class wins
 over the one of a comment, and `mixed` never erases a known type); the sources add up; `required` is worked out again
 from the merged default and type. Props and blocks keep the order of the first reader that knows them.
+
+## Checking every example (CI)
+
+```bash
+bin/console ux-showcase:check [--library=<name> ...] [--strict] [--with-data] [--format=junit --output=<file>]
+```
+
+It renders every example of every library (`--library`, repeatable, to pick some) through an HttpKernel sub-request to
+its bare page: the bare template of the host, its asset helpers and its Twig globals are exercised, with a simulated
+session (`csrf_token()` works) and the access check lifted for those sub-requests only. The lifting is a request
+attribute set by the command and honoured on a sub-request only: a request from the network is always a main request,
+so no query, header or cookie can set it.
+
+An example fails on an exception or a status other than 200. With `--strict`, Twig strict variables are on for the run
+(an application in dev usually has them off, and an undefined variable then renders as nothing) and a PHP notice,
+warning or deprecation raised during a render fails it. Every broken example is listed, not the first:
+
+```
+ FAIL  flexy / Flexy:Form:Input / error: Twig\Error\RuntimeError: Variable "label" does not exist in "..." at line 3.
+ WARN  flexy / Flexy:Cart / summary skipped, needs data: use --with-data to render it
+Checked 41, passed 40, failed 1, skipped 1.
+```
+
+The exit code is 1 when an example failed, 0 otherwise. "Checked" counts the examples rendered; `-v` also lists the ones
+that passed. `--format=junit --output=reports/showcase.xml` writes a JUnit report (a testsuite per library, a testcase
+per example, `<failure message>` on a failed one, `<skipped>` on a skipped one) and keeps the human output on the
+console; without `--output` the XML goes to the standard output.
+
+GitLab CI, with the report in the test tab of the merge request:
+
+```yaml
+showcase:
+  stage: test
+  script:
+    - bin/console ux-showcase:check --strict --format=junit --output=reports/showcase.xml
+  artifacts:
+    when: always
+    reports:
+      junit: reports/showcase.xml
+```
+
+Run it in the environment of the application (its `APP_ENV`, its database when `--with-data` is used): the command
+renders with the real container.
+
+### Examples that need data
+
+An example that reads the database by a fixed id, the session at mount, or calls an API when a prop is missing cannot
+render in a CI without those: mark it `needs_data` and the command skips it with a warning, unless `--with-data`.
+
+- in an example file: `{% showcase_example 'cart' options { needs_data: true } %}`;
+- for every example of a library: `ux_showcase.libraries.<name>.preview.needs_data: true`, or `ux_showcase.preview.needs_data`
+  for all; the first level that sets it wins, like the other preview options (an example can set `false`);
+- for some components of a library whose example files you do not own (a vendor kit): list them in the library,
+  `ux_showcase.libraries.<name>.needs_data: ['Flexy:Cart', 'Flexy:Form:Address']`;
+- in PHP: `new PreviewOptions(needsData: true)` on an `Example`, or `ComponentReference::$preview` for a component of
+  a library that implements `ComponentLibraryInterface`; an adapter that feeds examples through an
+  `ExampleProviderInterface` sets it on the examples it yields.
+
+### What it does not see
+
+It checks the server side only: a JavaScript error in the browser (a Stimulus controller that throws, a failing
+`fetch`), a layout that is wrong, a style that is missing. Pair it with a browser test for those.
 
 ## Quality
 
