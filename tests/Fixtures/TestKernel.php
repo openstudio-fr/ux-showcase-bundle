@@ -13,7 +13,12 @@ declare(strict_types=1);
 
 namespace OpenStudio\UxShowcaseBundle\Tests\Fixtures;
 
+use OpenStudio\UxShowcaseBundle\Example\ExampleCodeGenerator;
+use OpenStudio\UxShowcaseBundle\Example\ExampleRenderer;
+use OpenStudio\UxShowcaseBundle\Example\FixtureLoader;
 use OpenStudio\UxShowcaseBundle\OpenStudioUxShowcaseBundle;
+use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
+use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
@@ -24,6 +29,8 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+use Symfony\UX\LiveComponent\LiveComponentBundle;
+use Symfony\UX\StimulusBundle\StimulusBundle;
 use Symfony\UX\TwigComponent\TwigComponentBundle;
 
 final class TestKernel extends Kernel
@@ -37,6 +44,7 @@ final class TestKernel extends Kernel
         bool $debug,
         private readonly array $showcaseConfiguration = [],
         private readonly bool $withSecurity = false,
+        private readonly bool $withLibrary = false,
     ) {
         parent::__construct('test', $debug);
 
@@ -74,6 +82,11 @@ final class TestKernel extends Kernel
 
         if ($this->withSecurity) {
             yield new SecurityBundle();
+        }
+
+        if ($this->withLibrary) {
+            yield new StimulusBundle();
+            yield new LiveComponentBundle();
         }
     }
 
@@ -116,14 +129,34 @@ final class TestKernel extends Kernel
             ]);
         }
 
-        $container->services()
-            ->set(AllowAllShowcaseAccess::class)
-            ->public();
+        $services = $container->services();
+        $services->set(AllowAllShowcaseAccess::class)->public();
+
+        if ($this->withLibrary) {
+            $library = __DIR__.'/Library';
+            $container->extension('twig', ['paths' => [$library.'/templates']]);
+            $container->extension('twig_component', ['defaults' => [
+                'OpenStudio\\UxShowcaseBundle\\Tests\\Fixtures\\Library\\Component\\' => ['template_directory' => 'components/', 'name_prefix' => 'Demo'],
+            ]]);
+
+            $services->load('OpenStudio\\UxShowcaseBundle\\Tests\\Fixtures\\Library\\Component\\', $library.'/Component/')->autoconfigure();
+            $services->set('logger', NullLogger::class);
+            $services->set(Library\ServiceLibrary::class)->autoconfigure();
+            $services->set(Library\Example\ArticleCard::class)->autowire()->autoconfigure();
+            // Public aliases: the services themselves are private and inlined or removed when nothing else uses them.
+            foreach ([ShowcaseRegistry::class, ExampleRenderer::class, ExampleCodeGenerator::class, FixtureLoader::class] as $id) {
+                $services->alias('test.'.$id, $id)->public();
+            }
+        }
     }
 
     protected function configureRoutes(RoutingConfigurator $routes): void
     {
         $routes->import('@OpenStudioUxShowcaseBundle/config/routes.php')->prefix('/_showcase');
+
+        if ($this->withLibrary) {
+            $routes->import('@LiveComponentBundle/config/routes.php')->prefix('/_components');
+        }
     }
 
     private static function currentExceptionHandler(): mixed
@@ -136,6 +169,6 @@ final class TestKernel extends Kernel
 
     private function variant(): string
     {
-        return hash('xxh3', serialize([$this->debug, $this->showcaseConfiguration, $this->withSecurity]));
+        return hash('xxh3', serialize([$this->debug, $this->showcaseConfiguration, $this->withSecurity, $this->withLibrary]));
     }
 }
