@@ -198,7 +198,7 @@ final class TryPanelTest extends TestCase
         $this->client()->request('GET', '/_showcase/_assets/showcase.js');
         $script = (string) $this->client()->getResponse()->getContent();
 
-        foreach (['field.handle', 'field.getValue', 'field.setValue', 'field.notify', 'X-CSRF-Token', 'DEBOUNCE_MS = 400'] as $needle) {
+        foreach (['field.handle = function', 'field.getValue = function', 'field.setValue = function', 'field.notify = function', 'X-CSRF-Token', 'DEBOUNCE_MS = 400'] as $needle) {
             self::assertStringContainsString($needle, $script);
         }
     }
