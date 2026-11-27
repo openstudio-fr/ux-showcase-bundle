@@ -359,6 +359,16 @@ final class ScreenTest extends TestCase
         self::assertSame('Preview of Colours', $crawler->filterXPath('//iframe')->attr('title'));
     }
 
+    public function testADocumentationPageNamesItsExampleOnceInTheTitleOfThePage(): void
+    {
+        $crawler = $this->get('/_showcase/demo/_docs/colours');
+
+        self::assertCount(0, $crawler->filterXPath('//article/header'));
+        self::assertSame(['Colours'], $this->texts($crawler, '//main//*[self::h2 or self::h3][not(ancestor::nav)]'));
+        self::assertSame('showcase-heading', $crawler->filterXPath('//article')->attr('aria-labelledby'));
+        self::assertSame('Colours', $crawler->filterXPath('//article')->attr('data-title'));
+    }
+
     public function testActionsAreRenderedAsButtonsWhereTheyAreVisible(): void
     {
         $crawler = $this->get('/_showcase/demo/Demo:Button');

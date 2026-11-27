@@ -49,7 +49,7 @@
     </nav>
 
     <div class="showcase-page-head">
-        <h2>{{ heading }}</h2>
+        <h2 id="showcase-heading">{{ heading }}</h2>
         {% if component %}
             <code class="showcase-name">{{ component.name }}</code>
             {% if component.status %}
@@ -69,13 +69,17 @@
     {% for view in views %}
         {% set id = 'example-' ~ view.example.slug %}
         {% set has_props = component is not null and not view.example.free %}
-        <article class="showcase-example" id="{{ id }}" aria-labelledby="{{ id }}-title" data-ux-showcase-example data-title="{{ view.example.title }}">
+        {# A documentation page has one example, named like the page: its header would repeat the title, unless it carries actions. #}
+        {% set has_head = component is not null or views|length > 1 or view.actions is not empty %}
+        <article class="showcase-example" id="{{ id }}" aria-labelledby="{{ has_head ? id ~ '-title' : 'showcase-heading' }}" data-ux-showcase-example data-title="{{ view.example.title }}">
+            {% if has_head %}
             <header class="showcase-example-head">
                 <h3 id="{{ id }}-title"><a href="#{{ id }}">{{ view.example.title }}</a></h3>
                 <div class="showcase-actions">
                     {% for action in view.actions %}{% include '@OpenStudioUxShowcase/_action.html.twig' %}{% endfor %}
                 </div>
             </header>
+            {% endif %}
 
             <div class="showcase-preview{% if view.try %} showcase-preview-with-try{% endif %}">
                 <div class="showcase-preview-main">
