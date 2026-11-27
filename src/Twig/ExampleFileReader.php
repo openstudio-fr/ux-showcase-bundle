@@ -16,6 +16,7 @@ namespace OpenStudio\UxShowcaseBundle\Twig;
 use OpenStudio\UxShowcaseBundle\Example\Example;
 use OpenStudio\UxShowcaseBundle\Example\PreviewOptions;
 use OpenStudio\UxShowcaseBundle\Exception\ShowcaseException;
+use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
 use Twig\Environment;
 use Twig\Error\Error;
 use Twig\Loader\ArrayLoader;
@@ -102,6 +103,7 @@ final class ExampleFileReader
                     source: $free ? $body : null,
                     group: $group,
                     preview: $preview,
+                    status: \is_string($node->getAttribute('status')) ? ComponentStatus::from($node->getAttribute('status')) : null,
                 );
             } catch (\InvalidArgumentException $exception) {
                 throw new ShowcaseException(\sprintf('%s line %d: %s', $name, $line, $exception->getMessage()), 0, $exception);

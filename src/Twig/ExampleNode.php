@@ -26,8 +26,8 @@ final class ExampleNode extends Node
      * @param array<string, mixed> $props
      * @param array<string, mixed> $options
      */
-    public function __construct(bool $free, string $slug, ?string $title, array $props, array $options, int $line)
+    public function __construct(bool $free, string $slug, ?string $title, array $props, array $options, int $line, ?string $status = null)
     {
-        parent::__construct([], ['free' => $free, 'slug' => $slug, 'title' => $title, 'props' => $props, 'options' => $options], $line);
+        parent::__construct([], ['free' => $free, 'slug' => $slug, 'title' => $title, 'props' => $props, 'options' => $options, 'status' => $status], $line);
     }
 }

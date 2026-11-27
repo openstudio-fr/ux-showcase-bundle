@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace OpenStudio\UxShowcaseBundle\Tests\Unit;
 
 use OpenStudio\UxShowcaseBundle\Exception\ShowcaseException;
+use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
 use OpenStudio\UxShowcaseBundle\Twig\ExampleFileReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -42,6 +43,17 @@ final class ExampleFileReaderTest extends TestCase
         self::assertSame('p-4', $example->preview->bodyClass);
         self::assertFalse($example->preview->wrapper);
         self::assertSame(200, $example->preview->height);
+    }
+
+    public function testAFreeExampleOfADocumentationPageReadsItsStatus(): void
+    {
+        $reader = new ExampleFileReader();
+        $pages = $reader->read("{% showcase_free 'one' status 'ready' %}x{% end_showcase_free %}{% showcase_free 'two' titled 'Two' %}y{% end_showcase_free %}", 'file.twig', null, 'Docs');
+
+        self::assertSame(ComponentStatus::Ready, $pages[0]->status);
+        self::assertNull($pages[1]->status);
+        $this->expectExceptionMessage('"status" expects');
+        $reader->read("{% showcase_free 'one' status 'hidden' %}x{% end_showcase_free %}", 'file.twig', null, 'Docs');
     }
 
     public function testABodyMayHoldTwigThatThePrivateEnvironmentDoesNotKnow(): void
