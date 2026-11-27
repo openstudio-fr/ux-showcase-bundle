@@ -89,13 +89,17 @@ final class ConfigurationTest extends TestCase
         yield 'short hex' => ['#fff'];
         yield 'name' => ['rebeccapurple'];
         yield 'rgb' => ['rgb(10, 20, 30)'];
-        yield 'hsla' => ['hsla(120, 50%, 40%, 0.5)'];
     }
 
     #[DataProvider('safeColours')]
     public function testThePrimaryColourAcceptsASafeCssColour(string $colour): void
     {
         self::assertSame($colour, $this->configuration(['theme' => ['primary_color' => $colour]])->primaryColor);
+    }
+
+    public function testAPercentageInThePrimaryColourIsWrittenAsAnEscapedPercentSign(): void
+    {
+        self::assertSame('hsla(120, 50%, 40%, 0.5)', $this->configuration(['theme' => ['primary_color' => 'hsla(120, 50%%, 40%%, 0.5)']])->primaryColor);
     }
 
     /**

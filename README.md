@@ -58,7 +58,7 @@ ux_showcase:
     title: Components            # title of the screen
     logo: /build/logo.svg        # asset path or URL, none by default
     theme:
-        primary_color: ~         # CSS colour of the links, the active menu entry and the accents (hex, name, rgb() or hsl()); the default blue when empty
+        primary_color: ~         # CSS colour of the links, the active menu entry and the accents (hex, name, rgb() or hsl(), a % written %%); the default blue when empty
     viewports:                   # preview widths in pixels, null for a responsive preview; replaces the default list
         responsive: ~
         mobile: 375
