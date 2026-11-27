@@ -22,7 +22,8 @@ final readonly class ShowcaseConfiguration
      * @param array<string, int|null>   $viewports    name => width in pixels, null for a responsive preview
      * @param array<string, Background> $backgrounds  name => background, in display order
      * @param PreviewOptions            $preview      last level of the preview options, below every library
-     * @param string|null               $primaryColor a CSS colour already validated by the configuration, null for the default
+     * @param string|null               $primaryColor   a CSS colour already validated by the configuration, null for the default
+     * @param string|null               $pageBackground a CSS colour already validated by the configuration, null for the default
      */
     public function __construct(
         public string $title,
@@ -31,6 +32,7 @@ final readonly class ShowcaseConfiguration
         public array $backgrounds,
         public PreviewOptions $preview = new PreviewOptions(),
         public ?string $primaryColor = null,
+        public ?string $pageBackground = null,
     ) {
     }
 }
