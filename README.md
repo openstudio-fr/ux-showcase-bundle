@@ -101,20 +101,37 @@ and scripts are served with the page, with no dependency on the asset pipeline o
 
 ## Thelia
 
-On a Thelia 3 site built from `thelia/thelia-project`, the installation above works with two differences:
+Registration by the Thelia core is proposed in [thelia/thelia#4381](https://github.com/thelia/thelia/pull/4381), for
+the 3.5 line, and is not in a release yet. With it, a Thelia 3 shop only installs the package:
+
+- the core registers the bundle and imports its routes under `/_showcase`: nothing goes in `config/bundles.php` or
+  `config/routes/`;
+- the core provides `Thelia\Core\Security\Showcase\AdministratorShowcaseAccess`, which opens the showcase to signed-in
+  back-office administrators, in addition to debug. The back office of Thelia has no Symfony firewall, so
+  `access.role` cannot do it. Name the service in `config/packages/ux_showcase.yaml`:
+
+  ```yaml
+  ux_showcase:
+      access:
+          service: Thelia\Core\Security\Showcase\AdministratorShowcaseAccess
+  ```
+
+On a Thelia 3 site without that registration, built from `thelia/thelia-project`, install the package as above with
+two differences:
 
 - the kernel of the project imports the YAML files of `config/routes/` only, so the routes go in
-  `config/routes/ux_showcase.yaml`:
+  `config/routes/ux_showcase.yaml`. Keep `trailing_slash_on_root: false`: with a slash on the prefixed root, the index
+  redirects to itself in a loop.
 
   ```yaml
   ux_showcase:
       resource: '@OpenStudioUxShowcaseBundle/config/routes.php'
       prefix: /_showcase
+      trailing_slash_on_root: false
   ```
 
-- the back office of Thelia has no Symfony firewall, so `access.role` cannot open the showcase to its administrators.
-  Name in `access.service` a service that asks the security context of Thelia; it replaces the debug rule, hence the
-  `kernel.debug` argument:
+- declare your own access service, the same as the one of the core, and name it in `access.service`. It replaces the
+  debug rule, hence the `kernel.debug` argument:
 
   ```php
   use OpenStudio\UxShowcaseBundle\Access\ShowcaseAccessInterface;
@@ -137,9 +154,9 @@ On a Thelia 3 site built from `thelia/thelia-project`, the installation above wo
   }
   ```
 
-Registration by the Thelia core, with this access service included, is proposed to Thelia and is not in a release yet;
-once it is, this section will name the first version that ships it and both steps will go away. The components of the
-Flexy theme, with the examples the theme and its modules already provide, will come as a library provided by Flexy.
+The Flexy theme brings its own library when the package is installed: its components, grouped by folder, with the
+examples the theme and its modules provide. It is proposed in
+[thelia-templates/flexy#366](https://github.com/thelia-templates/flexy/pull/366).
 
 ## Libraries and examples
 
