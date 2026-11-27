@@ -26,7 +26,9 @@
         <h2>{{ heading }}</h2>
         {% if component %}
             <code class="showcase-name">{{ component.name }}</code>
-            <span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
+            {% if component.status %}
+                <span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
+            {% endif %}
         {% endif %}
         <div class="showcase-actions">
             {% block header_actions %}
