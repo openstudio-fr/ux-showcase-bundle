@@ -6,8 +6,10 @@
 {% set current_library = app.request.attributes.get('library') %}
 {% set current_component = app.request.attributes.get('component') %}
 {% set current_slug = app.request.attributes.get('slug') %}
+{# The width and the background chosen on a page with previews follow the visitor from page to page. #}
+{% set carried = state is defined and state ? state.carried(configuration) : {} %}
 <nav class="showcase-menu" id="showcase-menu" aria-label="{{ 'nav.menu'|trans({}, 'UxShowcaseBundle') }}" data-ux-showcase-menu>
-    <a class="showcase-menu-home" href="{{ path('ux_showcase_index') }}"{% if current_route == 'ux_showcase_index' %} aria-current="page"{% endif %}>{{ 'nav.all'|trans({}, 'UxShowcaseBundle') }}</a>
+    <a class="showcase-menu-home" href="{{ path('ux_showcase_index', carried) }}"{% if current_route == 'ux_showcase_index' %} aria-current="page"{% endif %}>{{ 'nav.all'|trans({}, 'UxShowcaseBundle') }}</a>
     {% for entry in libraries|default([]) %}
         {% set library = entry.library %}
         <section class="showcase-menu-library">
@@ -17,15 +19,17 @@
                 <ul>
                     {% for component in group.components %}
                         <li>
-                            <a href="{{ path('ux_showcase_component', {library: library.name, component: component.name}) }}"{% if current_route == 'ux_showcase_component' and current_library == library.name and current_component == component.name %} aria-current="page"{% endif %}>
-                                {{ component.label }}
+                            <a href="{{ path('ux_showcase_component', {library: library.name, component: component.name}|merge(carried)) }}"{% if current_route == 'ux_showcase_component' and current_library == library.name and current_component == component.name %} aria-current="page"{% endif %}>
+                                <span class="showcase-menu-label">{{ component.label|ux_showcase_breakable }}</span>
                                 {% if component.status %}<span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>{% endif %}
                             </a>
                         </li>
                     {% endfor %}
                     {% for page in group.docPages %}
                         <li>
-                            <a href="{{ path('ux_showcase_doc', {library: library.name, slug: page.slug}) }}"{% if current_route == 'ux_showcase_doc' and current_library == library.name and current_slug == page.slug %} aria-current="page"{% endif %}>{{ page.title }}</a>
+                            <a href="{{ path('ux_showcase_doc', {library: library.name, slug: page.slug}|merge(carried)) }}"{% if current_route == 'ux_showcase_doc' and current_library == library.name and current_slug == page.slug %} aria-current="page"{% endif %}><span class="showcase-menu-label">{{ page.title|ux_showcase_breakable }}</span>
+                                {% if page.status %}<span class="showcase-badge showcase-badge-{{ page.status.value }}">{{ ('status.' ~ page.status.value)|trans({}, 'UxShowcaseBundle') }}</span>{% endif %}
+                            </a>
                         </li>
                     {% endfor %}
                 </ul>

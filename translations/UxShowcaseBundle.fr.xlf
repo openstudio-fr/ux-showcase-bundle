@@ -50,14 +50,6 @@
                 <source>controls.default</source>
                 <target>Par défaut</target>
             </trans-unit>
-            <trans-unit id="tabs.label" resname="tabs.label">
-                <source>tabs.label</source>
-                <target>Vues de %example%</target>
-            </trans-unit>
-            <trans-unit id="tabs.preview" resname="tabs.preview">
-                <source>tabs.preview</source>
-                <target>Aperçu</target>
-            </trans-unit>
             <trans-unit id="tabs.code" resname="tabs.code">
                 <source>tabs.code</source>
                 <target>Code</target>
@@ -177,6 +169,26 @@
             <trans-unit id="try.updated" resname="try.updated">
                 <source>try.updated</source>
                 <target>Aperçu mis à jour.</target>
+            </trans-unit>
+            <trans-unit id="footer.label" resname="footer.label">
+                <source>footer.label</source>
+                <target>Affichage des exemples</target>
+            </trans-unit>
+            <trans-unit id="footer.current" resname="footer.current">
+                <source>footer.current</source>
+                <target>Exemple :</target>
+            </trans-unit>
+            <trans-unit id="footer.from_header" resname="footer.from_header">
+                <source>footer.from_header</source>
+                <target>Celui de l&apos;en-tête</target>
+            </trans-unit>
+            <trans-unit id="footer.reset" resname="footer.reset">
+                <source>footer.reset</source>
+                <target>Revenir au choix de l&apos;en-tête</target>
+            </trans-unit>
+            <trans-unit id="panel.close" resname="panel.close">
+                <source>panel.close</source>
+                <target>Fermer</target>
             </trans-unit>
         </body>
     </file>

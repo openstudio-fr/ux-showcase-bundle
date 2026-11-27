@@ -50,14 +50,6 @@
                 <source>controls.default</source>
                 <target>Default</target>
             </trans-unit>
-            <trans-unit id="tabs.label" resname="tabs.label">
-                <source>tabs.label</source>
-                <target>Views of %example%</target>
-            </trans-unit>
-            <trans-unit id="tabs.preview" resname="tabs.preview">
-                <source>tabs.preview</source>
-                <target>Preview</target>
-            </trans-unit>
             <trans-unit id="tabs.code" resname="tabs.code">
                 <source>tabs.code</source>
                 <target>Code</target>
@@ -177,6 +169,26 @@
             <trans-unit id="try.updated" resname="try.updated">
                 <source>try.updated</source>
                 <target>Preview updated.</target>
+            </trans-unit>
+            <trans-unit id="footer.label" resname="footer.label">
+                <source>footer.label</source>
+                <target>Display of the examples</target>
+            </trans-unit>
+            <trans-unit id="footer.current" resname="footer.current">
+                <source>footer.current</source>
+                <target>Example:</target>
+            </trans-unit>
+            <trans-unit id="footer.from_header" resname="footer.from_header">
+                <source>footer.from_header</source>
+                <target>From the header</target>
+            </trans-unit>
+            <trans-unit id="footer.reset" resname="footer.reset">
+                <source>footer.reset</source>
+                <target>Back to the header choice</target>
+            </trans-unit>
+            <trans-unit id="panel.close" resname="panel.close">
+                <source>panel.close</source>
+                <target>Close</target>
             </trans-unit>
         </body>
     </file>

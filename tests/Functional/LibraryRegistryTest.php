@@ -53,7 +53,7 @@ final class LibraryRegistryTest extends TestCase
         }
         self::assertSame(['Demo:Button'], $byGroup['General']);
         self::assertSame(['Demo:Form:Counter', 'Demo:Form:Input'], $byGroup['Form']);
-        self::assertSame(['Demo:Layout:Card'], $byGroup['Layout']);
+        self::assertSame(['Demo:Layout:Card', 'Demo:Layout:CompanyBuyersAccountOverviewSummary'], $byGroup['Layout']);
         self::assertSame([], $byGroup['Foundations']);
         self::assertSame(['Demo:Experimental:Chart'], $byGroup['Experimental']);
 
@@ -68,7 +68,7 @@ final class LibraryRegistryTest extends TestCase
         self::assertNotNull($library);
 
         self::assertSame(
-            ['Demo:Button', 'Demo:Form:Counter', 'Demo:Form:Input', 'Demo:Layout:Card', 'Demo:Experimental:Chart', 'Demo:Legacy:Old'],
+            ['Demo:Button', 'Demo:Form:Counter', 'Demo:Form:Input', 'Demo:Layout:Card', 'Demo:Layout:CompanyBuyersAccountOverviewSummary', 'Demo:Experimental:Chart', 'Demo:Legacy:Old'],
             array_map(static fn ($reference): string => $reference->name, $library->getComponents()),
         );
     }
@@ -126,12 +126,13 @@ final class LibraryRegistryTest extends TestCase
         $registry = $this->registry();
 
         $pages = $registry->docPages('demo');
-        self::assertCount(1, $pages);
+        self::assertCount(2, $pages);
         self::assertTrue($pages[0]->isFree());
         self::assertNull($pages[0]->component);
         self::assertSame('Foundations', $pages[0]->group);
         self::assertSame($pages[0], $registry->findExample('demo', null, 'colours'));
         self::assertSame($pages[0], $registry->groups('demo')[3]->docPages[0]);
+        self::assertSame(['colours', 'spacing'], array_map(static fn ($page): string => $page->slug, $registry->groups('demo')[3]->docPages));
     }
 
     public function testFindExample(): void

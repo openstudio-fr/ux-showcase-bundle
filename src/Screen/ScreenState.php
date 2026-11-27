@@ -17,7 +17,7 @@ use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * What the visitor chose on the component page, kept in the query string so that a link shares it: a width (the first
+ * What the visitor chose on a page with previews, kept in the query string so that a link shares it and carried by the links to the other pages: a width (the first
  * one by default) and a background (none: each example keeps its own).
  *
  * @internal
@@ -46,5 +46,23 @@ final readonly class ScreenState
         }
 
         return new self($viewport, $background);
+    }
+
+    /**
+     * The choices that differ from the defaults, as query parameters for the links to the other screens.
+     *
+     * @return array<string, string>
+     */
+    public function carried(ShowcaseConfiguration $configuration): array
+    {
+        $carried = [];
+        if ($this->viewport !== (string) array_key_first($configuration->viewports)) {
+            $carried[self::VIEWPORT_PARAMETER] = $this->viewport;
+        }
+        if (null !== $this->background) {
+            $carried[self::BACKGROUND_PARAMETER] = $this->background;
+        }
+
+        return $carried;
     }
 }

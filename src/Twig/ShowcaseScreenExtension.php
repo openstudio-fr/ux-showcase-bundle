@@ -35,7 +35,10 @@ final class ShowcaseScreenExtension extends AbstractExtension
 
     public function getFilters(): array
     {
-        return [new TwigFilter('ux_showcase_value', $this->value(...))];
+        return [
+            new TwigFilter('ux_showcase_value', $this->value(...)),
+            new TwigFilter('ux_showcase_breakable', $this->breakable(...), ['is_safe' => ['html']]),
+        ];
     }
 
     /**
@@ -48,5 +51,16 @@ final class ShowcaseScreenExtension extends AbstractExtension
         } catch (\InvalidArgumentException) {
             return get_debug_type($value);
         }
+    }
+
+    /**
+     * A label escaped, with a line break allowed (`<wbr>`) before each capital that follows a lowercase letter or a
+     * digit and after `_`, `-`, `.`, `/`: a long name (`AccountCompanyBuyers`) wraps between its words.
+     */
+    public function breakable(string $label): string
+    {
+        $escaped = htmlspecialchars($label, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
+
+        return (string) preg_replace(['/(?<=[\p{Ll}\d])(?=\p{Lu})/u', '/(?<=[_\-.\/])(?=[^_\-.\/])/u'], '<wbr>', $escaped);
     }
 }

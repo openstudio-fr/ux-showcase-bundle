@@ -80,8 +80,9 @@ ux_showcase:
     libraries: {}                # see "Libraries"
 ```
 
-`viewports` is replaced as a whole, not merged by key: when a bundle (a theme) prepends its widths, the last declared
-configuration, usually the application's, is the list that stays.
+`viewports` and `backgrounds` are replaced as a whole, not merged by key: when a bundle (a theme) prepends its widths or
+its backgrounds, the last declared configuration, usually the application's, is the list that stays (the application can
+remove an entry of the theme).
 
 ### Access
 
@@ -328,6 +329,19 @@ is never evaluated.
 A documentation page (colours, typography, icons) is a free example tied to no component: a file in
 `_docs/<Group>/<name>.showcase.twig` holds `showcase_free` tags, listed under the group `<Group>`.
 
+A page may carry a status, `ready` or `waiting`, shown as a badge in the index, the menu and the header of the page (none
+by default, as for `ComponentReference::$status`):
+
+```twig
+{% showcase_free 'spacing' titled 'Spacing' status 'waiting' %}
+    <p>Spacing scale</p>
+{% end_showcase_free %}
+```
+
+A library that builds its examples in PHP passes it to the example: `new Example(null, 'spacing', source: '<p>…</p>',
+group: 'Foundations', status: ComponentStatus::Waiting)`. `Hidden` is refused (leave the page out), and a component
+example takes no status.
+
 ### PHP examples
 
 For props that come from data, mark a class (its `__invoke()`) or a method with `#[AsShowcaseExample]`; it is
@@ -394,21 +408,36 @@ Every screen but the bare page of a preview has a side menu listing the librarie
 | Name | Path | Screen |
 |---|---|---|
 | `ux_showcase_index` | `/` | libraries, then groups: components with a status badge (`ready`, `waiting`; `hidden` ones are absent), a "No example" badge when a component has none, and documentation pages |
-| `ux_showcase_component` | `/{library}/{component}` | the examples of a component, each with the tabs Preview, Code and Props, and the Try form beside the frame |
-| `ux_showcase_doc` | `/{library}/_docs/{slug}` | a documentation page: Preview and Code, no Props |
+| `ux_showcase_component` | `/{library}/{component}` | the examples of a component, one after the other: title, large preview with the Try form beside it, then its Code and Props (no tabs) |
+| `ux_showcase_doc` | `/{library}/_docs/{slug}` | a documentation page: title, preview, Code, no Props |
 | `ux_showcase_preview` | `/{library}/{component}/{slug}/preview` | the bare page of one example, loaded by its frame |
 | `ux_showcase_preview_link`, `ux_showcase_preview_try` | see "Trying other values" | signed preview of tried values |
 | `ux_showcase_doc_preview` | `/{library}/_docs/{slug}/preview` | the bare page of a documentation page |
 | `ux_showcase_asset` | `/_assets/{file}` | the script and the style of the screens, served with cache headers |
 
-A component name keeps its `:` in the URL (`/_showcase/app/App:Form:Input`). The width and the background chosen on a
-component page are in its query string (`?viewport=mobile&background=dark`), so a link shares them. A background of
-`default` leaves each example its own. The Code tab is the generated `<twig:…>` snippet, or the source of a free
-example; the Props tab is the table of `ComponentDocumentation`, with the blocks. A free example has no Props tab.
+A component name keeps its `:` in the URL (`/_showcase/app/App:Form:Input`).
+
+**Width and background.** The header of the screens has the width and background choices of every page with previews
+(not the index). They are in the query string (`?viewport=mobile&background=dark`), so a link shares them, and the links
+of the menu carry them to the other pages (the defaults add nothing to an address). A background of `default` leaves
+each example its own. Without JavaScript they are plain links that reload the page; with it, the frames change in
+place. On a narrow screen they fold behind the menu button.
+
+**Bar at the bottom of a page of examples** (JavaScript only). It shows the name of the current example, the one that
+fills the most of the screen (a click on the title of an example makes it current), a width and a background of this
+page, and the buttons Code and Props (no Props on a documentation page). The width and the background of the bar win
+over the header's for this page: the control turns yellow and a "Back to the header choice" button appears. The two
+buttons open a panel above the bar with the generated `<twig:…>` snippet (or the source of a free example) and the
+table of `ComponentDocumentation` with its blocks, for the current example. The buttons carry `aria-expanded` and
+`aria-controls`, the panel takes the focus when it opens, and Escape or Close shuts it and gives the focus back to the
+button. Without JavaScript there is no bar: Code and Props are `<details>` under each preview.
 
 The scripts are standalone: nothing to register in the application (no Stimulus controller), and no inline script, so
-a strict content security policy lets them through. Tabs follow the ARIA pattern (arrow keys, Home, End) and every frame
-has a title. Without JavaScript every panel is shown and the choices are plain links.
+a strict content security policy lets them through. Every frame has a title.
+
+The bare page of a preview takes back the gutter of the scrollbar (`overflow-y: auto; scrollbar-gutter: auto`, added at
+the end of its `<head>`): a theme that forces a scrollbar (`html { overflow-y: scroll }`) would otherwise leave an empty
+strip at the right of the frame.
 
 ### Bare page
 
@@ -466,6 +495,8 @@ The component page has three Twig blocks, for a host or an add-on to fill. Overr
 {% block header_actions %}{{ parent() }}...{% endblock %}   {# header of the page #}
 {% block below_preview %}...{% endblock %}                  {# under the frame of each example: `view`, `component` #}
 {% block below_props %}...{% endblock %}                    {# under the props table of each example #}
+{% block controls %}...{% endblock %}                       {# width and background choices, in the header of the screen #}
+{% block footer %}...{% endblock %}                         {# the bar and the panel at the bottom of the screen #}
 ```
 
 Buttons come from services implementing `OpenStudio\UxShowcaseBundle\Screen\ComponentActionInterface` (autoconfigured,

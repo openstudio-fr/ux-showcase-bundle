@@ -15,29 +15,9 @@
 
 {% block title %}{{ heading }} - {{ configuration.title }}{% endblock %}
 
-{% block body %}
-    <nav class="showcase-breadcrumb" aria-label="{{ 'nav.breadcrumb'|trans({}, 'UxShowcaseBundle') }}">
-        <a href="{{ path('ux_showcase_index') }}">{{ 'nav.all'|trans({}, 'UxShowcaseBundle') }}</a>
-        <span aria-hidden="true">/</span>
-        <span>{{ library.label }}</span>
-    </nav>
+{% block body_class %} showcase-with-footer{% endblock %}
 
-    <div class="showcase-page-head">
-        <h2>{{ heading }}</h2>
-        {% if component %}
-            <code class="showcase-name">{{ component.name }}</code>
-            {% if component.status %}
-                <span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
-            {% endif %}
-        {% endif %}
-        <div class="showcase-actions">
-            {% block header_actions %}
-                {% for action in actions %}{% include '@OpenStudioUxShowcase/_action.html.twig' %}{% endfor %}
-            {% endblock %}
-        </div>
-    </div>
-    {% if documentation and documentation.description %}<p class="showcase-description">{{ documentation.description }}</p>{% endif %}
-
+{% block controls %}
     <div class="showcase-controls" data-ux-showcase-controls>
         <div role="group" aria-labelledby="controls-viewport">
             <span id="controls-viewport" class="showcase-controls-label">{{ 'controls.viewport'|trans({}, 'UxShowcaseBundle') }}</span>
@@ -57,11 +37,37 @@
             {% endfor %}
         </div>
     </div>
+{% endblock %}
+
+{% block body %}
+    <nav class="showcase-breadcrumb" aria-label="{{ 'nav.breadcrumb'|trans({}, 'UxShowcaseBundle') }}">
+        <a href="{{ path('ux_showcase_index') }}">{{ 'nav.all'|trans({}, 'UxShowcaseBundle') }}</a>
+        <span aria-hidden="true">/</span>
+        <span>{{ library.label }}</span>
+    </nav>
+
+    <div class="showcase-page-head">
+        <h2>{{ heading }}</h2>
+        {% if component %}
+            <code class="showcase-name">{{ component.name }}</code>
+            {% if component.status %}
+                <span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
+            {% endif %}
+        {% elseif page and page.status %}
+            <span class="showcase-badge showcase-badge-{{ page.status.value }}">{{ ('status.' ~ page.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
+        {% endif %}
+        <div class="showcase-actions">
+            {% block header_actions %}
+                {% for action in actions %}{% include '@OpenStudioUxShowcase/_action.html.twig' %}{% endfor %}
+            {% endblock %}
+        </div>
+    </div>
+    {% if documentation and documentation.description %}<p class="showcase-description">{{ documentation.description }}</p>{% endif %}
 
     {% for view in views %}
         {% set id = 'example-' ~ view.example.slug %}
         {% set has_props = component is not null and not view.example.free %}
-        <article class="showcase-example" id="{{ id }}" aria-labelledby="{{ id }}-title">
+        <article class="showcase-example" id="{{ id }}" aria-labelledby="{{ id }}-title" data-ux-showcase-example data-title="{{ view.example.title }}">
             <header class="showcase-example-head">
                 <h3 id="{{ id }}-title"><a href="#{{ id }}">{{ view.example.title }}</a></h3>
                 <div class="showcase-actions">
@@ -69,94 +75,125 @@
                 </div>
             </header>
 
-            <div class="showcase-tabs" data-ux-showcase-tabs>
-                <div role="tablist" aria-label="{{ 'tabs.label'|trans({'%example%': view.example.title}, 'UxShowcaseBundle') }}">
-                    <button type="button" role="tab" id="{{ id }}-tab-preview" aria-controls="{{ id }}-panel-preview" aria-selected="true" tabindex="0">{{ 'tabs.preview'|trans({}, 'UxShowcaseBundle') }}</button>
-                    <button type="button" role="tab" id="{{ id }}-tab-code" aria-controls="{{ id }}-panel-code" aria-selected="false" tabindex="-1">{{ 'tabs.code'|trans({}, 'UxShowcaseBundle') }}</button>
-                    {% if has_props %}
-                        <button type="button" role="tab" id="{{ id }}-tab-props" aria-controls="{{ id }}-panel-props" aria-selected="false" tabindex="-1">{{ 'tabs.props'|trans({}, 'UxShowcaseBundle') }}</button>
-                    {% endif %}
-                </div>
-
-                <div role="tabpanel" id="{{ id }}-panel-preview" aria-labelledby="{{ id }}-tab-preview" tabindex="0">
-                    <div class="showcase-preview{% if view.try %} showcase-preview-with-try{% endif %}">
-                        <div class="showcase-preview-main">
-                            <div class="showcase-frame">
-                                <iframe
-                                    title="{{ 'example.frame_title'|trans({'%example%': view.example.title}, 'UxShowcaseBundle') }}"
-                                    src="{{ view.previewUrl }}"
-                                    {% if view.try %}name="{{ view.try.frameName }}"{% endif %}
-                                    loading="lazy"
-                                    style="width: {{ viewport_width ? viewport_width ~ 'px' : '100%' }}{% if view.height %}; height: {{ view.height }}px{% endif %}"
-                                    {% if view.height %}data-fixed-height{% endif %}
-                                ></iframe>
-                            </div>
-                            {% block below_preview %}{% endblock %}
-                        </div>
-                        {% if view.try %}{% include '@OpenStudioUxShowcase/_try.html.twig' with {try: view.try, id: id} only %}{% endif %}
+            <div class="showcase-preview{% if view.try %} showcase-preview-with-try{% endif %}">
+                <div class="showcase-preview-main">
+                    <div class="showcase-frame">
+                        <iframe
+                            title="{{ 'example.frame_title'|trans({'%example%': view.example.title}, 'UxShowcaseBundle') }}"
+                            src="{{ view.previewUrl }}"
+                            {% if view.try %}name="{{ view.try.frameName }}"{% endif %}
+                            loading="lazy"
+                            style="width: {{ viewport_width ? viewport_width ~ 'px' : '100%' }}{% if view.height %}; height: {{ view.height }}px{% endif %}"
+                            {% if view.height %}data-fixed-height{% endif %}
+                        ></iframe>
                     </div>
+                    {% block below_preview %}{% endblock %}
                 </div>
+                {% if view.try %}{% include '@OpenStudioUxShowcase/_try.html.twig' with {try: view.try, id: id} only %}{% endif %}
+            </div>
 
-                <div role="tabpanel" id="{{ id }}-panel-code" aria-labelledby="{{ id }}-tab-code" tabindex="0">
+            {# Code and props: read here without JavaScript; with it, the bar at the bottom of the screen shows them in a panel. #}
+            <details class="showcase-details" id="{{ id }}-code" data-ux-showcase-details="code">
+                <summary>{{ 'tabs.code'|trans({}, 'UxShowcaseBundle') }}</summary>
+                <div class="showcase-details-body">
                     <pre class="showcase-code"><code>{{ view.code }}</code></pre>
                 </div>
+            </details>
 
-                {% if has_props %}
-                    <div role="tabpanel" id="{{ id }}-panel-props" aria-labelledby="{{ id }}-tab-props" tabindex="0">
+            {% if has_props %}
+                <details class="showcase-details" id="{{ id }}-props" data-ux-showcase-details="props">
+                    <summary>{{ 'tabs.props'|trans({}, 'UxShowcaseBundle') }}</summary>
+                    <div class="showcase-details-body">
                         {% if documentation.props %}
-                            <table class="showcase-table">
-                                <caption class="showcase-visually-hidden">{{ 'props.caption'|trans({'%component%': component.name}, 'UxShowcaseBundle') }}</caption>
-                                <thead>
+                        <table class="showcase-table">
+                            <caption class="showcase-visually-hidden">{{ 'props.caption'|trans({'%component%': component.name}, 'UxShowcaseBundle') }}</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">{{ 'props.name'|trans({}, 'UxShowcaseBundle') }}</th>
+                                    <th scope="col">{{ 'props.type'|trans({}, 'UxShowcaseBundle') }}</th>
+                                    <th scope="col">{{ 'props.default'|trans({}, 'UxShowcaseBundle') }}</th>
+                                    <th scope="col">{{ 'props.description'|trans({}, 'UxShowcaseBundle') }}</th>
+                                    <th scope="col">{{ 'props.required'|trans({}, 'UxShowcaseBundle') }}</th>
+                                    <th scope="col">{{ 'props.allowed'|trans({}, 'UxShowcaseBundle') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prop in documentation.props %}
                                     <tr>
-                                        <th scope="col">{{ 'props.name'|trans({}, 'UxShowcaseBundle') }}</th>
-                                        <th scope="col">{{ 'props.type'|trans({}, 'UxShowcaseBundle') }}</th>
-                                        <th scope="col">{{ 'props.default'|trans({}, 'UxShowcaseBundle') }}</th>
-                                        <th scope="col">{{ 'props.description'|trans({}, 'UxShowcaseBundle') }}</th>
-                                        <th scope="col">{{ 'props.required'|trans({}, 'UxShowcaseBundle') }}</th>
-                                        <th scope="col">{{ 'props.allowed'|trans({}, 'UxShowcaseBundle') }}</th>
+                                        <th scope="row"><code>{{ prop.name }}</code></th>
+                                        <td><code>{{ prop.type }}</code></td>
+                                        <td>{% if prop.hasDefault %}<code>{{ prop.default|ux_showcase_value }}</code>{% else %}<span class="showcase-muted">{{ 'props.none'|trans({}, 'UxShowcaseBundle') }}</span>{% endif %}</td>
+                                        <td>{{ prop.description }}</td>
+                                        <td>{{ (prop.required ? 'props.yes' : 'props.no')|trans({}, 'UxShowcaseBundle') }}</td>
+                                        <td>{% for value in prop.allowedValues ?? [] %}<code>{{ value|ux_showcase_value }}</code>{% if not loop.last %} {% endif %}{% endfor %}</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {% for prop in documentation.props %}
-                                        <tr>
-                                            <th scope="row"><code>{{ prop.name }}</code></th>
-                                            <td><code>{{ prop.type }}</code></td>
-                                            <td>{% if prop.hasDefault %}<code>{{ prop.default|ux_showcase_value }}</code>{% else %}<span class="showcase-muted">{{ 'props.none'|trans({}, 'UxShowcaseBundle') }}</span>{% endif %}</td>
-                                            <td>{{ prop.description }}</td>
-                                            <td>{{ (prop.required ? 'props.yes' : 'props.no')|trans({}, 'UxShowcaseBundle') }}</td>
-                                            <td>{% for value in prop.allowedValues ?? [] %}<code>{{ value|ux_showcase_value }}</code>{% if not loop.last %} {% endif %}{% endfor %}</td>
+                                    {% for field in prop.fields %}
+                                        <tr class="showcase-field">
+                                            <th scope="row"><code>{{ prop.name }}.{{ field.name }}</code></th>
+                                            <td><code>{{ field.type }}</code></td>
+                                            <td></td>
+                                            <td>{{ field.description }}</td>
+                                            <td></td>
+                                            <td></td>
                                         </tr>
-                                        {% for field in prop.fields %}
-                                            <tr class="showcase-field">
-                                                <th scope="row"><code>{{ prop.name }}.{{ field.name }}</code></th>
-                                                <td><code>{{ field.type }}</code></td>
-                                                <td></td>
-                                                <td>{{ field.description }}</td>
-                                                <td></td>
-                                                <td></td>
-                                            </tr>
-                                        {% endfor %}
                                     {% endfor %}
-                                </tbody>
-                            </table>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                         {% else %}
-                            <p class="showcase-muted">{{ 'props.empty'|trans({}, 'UxShowcaseBundle') }}</p>
+                        <p class="showcase-muted">{{ 'props.empty'|trans({}, 'UxShowcaseBundle') }}</p>
                         {% endif %}
 
                         {% if documentation.blocks %}
-                            <h4>{{ 'blocks.title'|trans({}, 'UxShowcaseBundle') }}</h4>
-                            <ul class="showcase-blocks">
-                                {% for block in documentation.blocks %}
-                                    <li><code>{{ block.name }}</code>{% if block.description %} <span class="showcase-muted">{{ block.description }}</span>{% endif %}</li>
-                                {% endfor %}
-                            </ul>
+                        <h4>{{ 'blocks.title'|trans({}, 'UxShowcaseBundle') }}</h4>
+                        <ul class="showcase-blocks">
+                            {% for block in documentation.blocks %}
+                                <li><code>{{ block.name }}</code>{% if block.description %} <span class="showcase-muted">{{ block.description }}</span>{% endif %}</li>
+                            {% endfor %}
+                        </ul>
                         {% endif %}
                         {% block below_props %}{% endblock %}
                     </div>
-                {% endif %}
-            </div>
+                </details>
+            {% endif %}
         </article>
     {% else %}
         <p class="showcase-muted">{{ 'component.no_examples'|trans({}, 'UxShowcaseBundle') }}</p>
     {% endfor %}
+{% endblock %}
+
+{% block footer %}
+  {% if views is not empty %}
+    {% set background_names = configuration.backgrounds|keys %}
+    <div class="showcase-footer" id="showcase-footer" role="region" aria-label="{{ 'footer.label'|trans({}, 'UxShowcaseBundle') }}" data-ux-showcase-footer>
+        <p class="showcase-footer-current" aria-live="polite"><span class="showcase-muted">{{ 'footer.current'|trans({}, 'UxShowcaseBundle') }}</span> <strong data-current-name>{{ views[0].example.title|default('') }}</strong></p>
+        <div class="showcase-footer-choice">
+            <label for="footer-viewport">{{ 'controls.viewport'|trans({}, 'UxShowcaseBundle') }}</label>
+            <select id="footer-viewport" data-override="viewport">
+                <option value="">{{ 'footer.from_header'|trans({}, 'UxShowcaseBundle') }}</option>
+                {% for key, width in configuration.viewports %}<option value="{{ key }}" data-width="{{ width }}">{{ key|capitalize }}{% if width %} {{ width }}px{% endif %}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="showcase-footer-choice">
+            <label for="footer-background">{{ 'controls.background'|trans({}, 'UxShowcaseBundle') }}</label>
+            <select id="footer-background" data-override="background">
+                <option value="">{{ 'footer.from_header'|trans({}, 'UxShowcaseBundle') }}</option>
+                <option value="none">{{ 'controls.default'|trans({}, 'UxShowcaseBundle') }}</option>
+                {% for key in background_names %}<option value="{{ key }}">{{ key|capitalize }}</option>{% endfor %}
+            </select>
+        </div>
+        <button type="button" class="showcase-button showcase-footer-reset" data-override-reset hidden>{{ 'footer.reset'|trans({}, 'UxShowcaseBundle') }}</button>
+        <div class="showcase-footer-panels">
+            <button type="button" class="showcase-button" data-panel-toggle="code" aria-expanded="false" aria-controls="showcase-panel">{{ 'tabs.code'|trans({}, 'UxShowcaseBundle') }}</button>
+            {% if component %}<button type="button" class="showcase-button" data-panel-toggle="props" aria-expanded="false" aria-controls="showcase-panel">{{ 'tabs.props'|trans({}, 'UxShowcaseBundle') }}</button>{% endif %}
+        </div>
+    </div>
+    <div class="showcase-panel" id="showcase-panel" role="dialog" aria-labelledby="showcase-panel-title" tabindex="-1" hidden data-ux-showcase-panel>
+        <header class="showcase-panel-head">
+            <h2 id="showcase-panel-title" data-panel-title></h2>
+            <button type="button" class="showcase-button" data-panel-close>{{ 'panel.close'|trans({}, 'UxShowcaseBundle') }}</button>
+        </header>
+        <div class="showcase-panel-body" data-panel-body></div>
+    </div>
+  {% endif %}
 {% endblock %}
