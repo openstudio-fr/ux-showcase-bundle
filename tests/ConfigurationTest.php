@@ -47,6 +47,22 @@ final class ConfigurationTest extends TestCase
         self::assertSame([], $configuration->backgrounds['sand']->htmlAttributes);
     }
 
+    public function testTheViewportsOfALaterConfigurationReplaceTheEarlierOnesInsteadOfMergingWithThem(): void
+    {
+        $kernel = new TestKernel(true, [], extraConfigurations: [
+            ['viewports' => ['theme-wide' => 1600, 'theme-small' => 320]],
+            ['viewports' => ['app' => 900]],
+        ]);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+        self::assertInstanceOf(ContainerInterface::class, $container);
+        $configuration = $container->get(ShowcaseConfiguration::class);
+        $kernel->shutdown();
+
+        self::assertInstanceOf(ShowcaseConfiguration::class, $configuration);
+        self::assertSame(['app' => 900], $configuration->viewports);
+    }
+
     public function testABackgroundIsAColourOrAColourWithHtmlAttributes(): void
     {
         $configuration = $this->configuration(['backgrounds' => [

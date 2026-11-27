@@ -24,6 +24,7 @@ return static function (DefinitionConfigurator $definition): void {
             ->scalarNode('logo')->defaultNull()->end()
             ->arrayNode('viewports')
                 ->info('Preview widths, in display order: name => width in pixels, or null for a responsive preview.')
+                ->performNoDeepMerging()
                 ->useAttributeAsKey('name')
                 ->normalizeKeys(false)
                 ->requiresAtLeastOneElement()

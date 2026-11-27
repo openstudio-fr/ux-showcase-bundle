@@ -44,7 +44,9 @@ final class TestKernel extends Kernel
     use MicroKernelTrait;
 
     /**
-     * @param array<string, mixed> $showcaseConfiguration
+     * @param array<string, mixed>       $showcaseConfiguration
+     * @param list<class-string>         $checkRequestFactories classes registered as request factories of the check command, autoconfigured
+     * @param list<array<string, mixed>> $extraConfigurations   further ux_showcase configurations, merged after the first as a bundle that prepends would
      */
     public function __construct(
         bool $debug,
@@ -52,6 +54,8 @@ final class TestKernel extends Kernel
         private readonly bool $withSecurity = false,
         private readonly bool $withLibrary = false,
         bool $cleanCache = true,
+        private readonly array $checkRequestFactories = [],
+        private readonly array $extraConfigurations = [],
     ) {
         parent::__construct('test', $debug);
 
@@ -130,6 +134,9 @@ final class TestKernel extends Kernel
             'profiler' => ['enabled' => $this->debug && $this->withLibrary, 'collect' => true],
         ]);
         $container->extension('ux_showcase', $this->showcaseConfiguration);
+        foreach ($this->extraConfigurations as $configuration) {
+            $container->extension('ux_showcase', $configuration);
+        }
 
         if ($this->withSecurity) {
             $container->extension('security', [
@@ -153,6 +160,10 @@ final class TestKernel extends Kernel
         $services->alias('test.twig', 'twig')->public();
         // The command of a host application: TwigBundle does not load its console services in this test kernel.
         $services->set('twig.command.lint', LintCommand::class)->args([service('twig'), ['*.twig']])->tag('console.command');
+
+        foreach ($this->checkRequestFactories as $factory) {
+            $services->set($factory)->autoconfigure();
+        }
 
         if ($this->withLibrary) {
             $library = __DIR__.'/Library';
@@ -196,6 +207,6 @@ final class TestKernel extends Kernel
 
     private function variant(): string
     {
-        return hash('xxh3', serialize([$this->debug, $this->showcaseConfiguration, $this->withSecurity, $this->withLibrary]));
+        return hash('xxh3', serialize([$this->debug, $this->showcaseConfiguration, $this->withSecurity, $this->withLibrary, $this->checkRequestFactories, $this->extraConfigurations]));
     }
 }
