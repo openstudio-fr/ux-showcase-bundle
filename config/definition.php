@@ -17,6 +17,8 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 
 return static function (DefinitionConfigurator $definition): void {
     $root = $definition->rootNode();
+    // A CSS colour that can be written into a style attribute as it is: nothing that closes the attribute or the declaration.
+    $isNotAColour = static fn (mixed $color): bool => null !== $color && (!is_string($color) || 1 !== preg_match('/^(#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|[a-z]{3,30}|(?:rgb|hsl)a?\\([0-9a-z.,%\\s\/+-]{1,60}\\))$/iD', $color));
     assert($root instanceof ArrayNodeDefinition);
     $root
         ->children()
@@ -29,8 +31,16 @@ return static function (DefinitionConfigurator $definition): void {
                         ->info('CSS colour of the links, of the active entry of the menu and of the accents of the screens; none by default.')
                         ->defaultNull()
                         ->validate()
-                            ->ifTrue(static fn (mixed $color): bool => null !== $color && (!is_string($color) || 1 !== preg_match('/^(#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|[a-z]{3,30}|(?:rgb|hsl)a?\\([0-9a-z.,%\\s\/+-]{1,60}\\))$/iD', $color)))
+                            ->ifTrue($isNotAColour)
                             ->thenInvalid('The primary colour is a hexadecimal colour, a colour name, or an rgb(), rgba(), hsl() or hsla() colour.')
+                        ->end()
+                    ->end()
+                    ->scalarNode('page_background')
+                        ->info('CSS colour of the page behind the content of the screens (the header, the menu and the bottom bar stay white); a light grey by default.')
+                        ->defaultNull()
+                        ->validate()
+                            ->ifTrue($isNotAColour)
+                            ->thenInvalid('The page background is a hexadecimal colour, a colour name, or an rgb(), rgba(), hsl() or hsla() colour.')
                         ->end()
                     ->end()
                 ->end()

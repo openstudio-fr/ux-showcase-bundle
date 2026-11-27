@@ -9,7 +9,8 @@
     <script src="{{ ux_showcase_asset('showcase.js') }}" defer></script>
     {% block head %}{% endblock %}
 </head>
-<body class="showcase{% block body_class %}{% endblock %}"{% if configuration.primaryColor %} style="--showcase-primary: {{ configuration.primaryColor }}"{% endif %}>
+{% set theme_style = [configuration.primaryColor ? '--showcase-primary: ' ~ configuration.primaryColor, configuration.pageBackground ? '--showcase-page-background: ' ~ configuration.pageBackground]|filter(declaration => declaration) %}
+<body class="showcase{% block body_class %}{% endblock %}"{% if theme_style is not empty %} style="{{ theme_style|join('; ') }}"{% endif %}>
     <header class="showcase-header">
         {% if configuration.logo %}<img src="{{ configuration.logo }}" alt="">{% endif %}
         <h1>{{ configuration.title }}</h1>

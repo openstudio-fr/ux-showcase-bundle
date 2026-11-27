@@ -111,6 +111,30 @@ final class ScreenTest extends TestCase
         self::assertSame('--showcase-primary: #7b2cbf', $body->attr('style'));
     }
 
+    public function testThePageBackgroundIsRenderedBesideThePrimaryColourWhenConfigured(): void
+    {
+        $this->tearDown();
+        $this->kernel = Configuration::kernel(configuration: Configuration::demo() + ['theme' => ['primary_color' => '#7b2cbf', 'page_background' => '#fff5f1']]);
+        $this->kernel->boot();
+        $client = $this->kernel->getContainer()->get('test.client');
+        self::assertInstanceOf(KernelBrowser::class, $client);
+        $this->client = $client;
+
+        foreach (['/_showcase/', '/_showcase/demo/Demo:Button', '/_showcase/demo/_docs/colours'] as $path) {
+            self::assertSame('--showcase-primary: #7b2cbf; --showcase-page-background: #fff5f1', $this->get($path)->filterXPath('//body')->attr('style'), $path);
+        }
+    }
+
+    public function testAnExampleIsNotBoxedAndTheCurrentOneIsNotOutlined(): void
+    {
+        $this->get('/_showcase/_assets/showcase.css');
+        $css = (string) $this->client()->getResponse()->getContent();
+
+        self::assertDoesNotMatchRegularExpression('/\.showcase-example\s*\{[^}]*(border|background)\s*:/', $css);
+        self::assertStringNotContainsString('.showcase-example.is-current', $css);
+        self::assertMatchesRegularExpression('/\.showcase\s*\{[^}]*background:\s*var\(--showcase-page-background,/', $css);
+    }
+
     public function testWithNoBackgroundNeitherTheHeaderNorTheBottomBarOffersOne(): void
     {
         $crawler = $this->get('/_showcase/demo/Demo:Button');
