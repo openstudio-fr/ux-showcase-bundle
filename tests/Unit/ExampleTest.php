@@ -15,6 +15,7 @@ namespace OpenStudio\UxShowcaseBundle\Tests\Unit;
 
 use OpenStudio\UxShowcaseBundle\Example\Example;
 use OpenStudio\UxShowcaseBundle\Example\ExampleCodeGenerator;
+use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
 use PHPUnit\Framework\TestCase;
 
 final class ExampleTest extends TestCase
@@ -52,6 +53,24 @@ final class ExampleTest extends TestCase
     {
         $this->expectExceptionMessage('only a documentation page has a group');
         new Example('Demo:Button', 'a', group: 'Foundations');
+    }
+
+    public function testADocumentationPageMayHaveAStatusAndHasNoneByDefault(): void
+    {
+        self::assertSame(ComponentStatus::Waiting, (new Example(null, 'a', source: 'x', group: 'Foundations', status: ComponentStatus::Waiting))->status);
+        self::assertNull((new Example(null, 'a', source: 'x', group: 'Foundations'))->status);
+    }
+
+    public function testOnlyADocumentationPageHasAStatus(): void
+    {
+        $this->expectExceptionMessage('only a documentation page has a status');
+        new Example('Demo:Button', 'a', status: ComponentStatus::Ready);
+    }
+
+    public function testADocumentationPageCannotBeHidden(): void
+    {
+        $this->expectExceptionMessage('cannot be hidden');
+        new Example(null, 'a', source: 'x', group: 'Foundations', status: ComponentStatus::Hidden);
     }
 
     public function testLiteralsOfTheGeneratedCode(): void

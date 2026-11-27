@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace OpenStudio\UxShowcaseBundle\Example;
 
+use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
+
 /**
  * A component with props and optional markup, or a free Twig snippet.
  *
@@ -33,6 +35,7 @@ final readonly class Example
      * @param string|null          $component TwigComponent name
      * @param string               $slug      stable, unique within the component (within the library for a documentation page)
      * @param string|null          $title     defaults to the slug, capitalised
+     * @param ComponentStatus|null $status    documentation page only: an optional badge (Ready, Waiting) in the index, the menu and the page; null = none
      * @param array<string, mixed> $props     scalars, nulls and arrays of them only: the form is filled from it and the code generated from it
      */
     public function __construct(
@@ -44,6 +47,7 @@ final readonly class Example
         public ?string $source = null,
         public ?string $group = null,
         public PreviewOptions $preview = new PreviewOptions(),
+        public ?ComponentStatus $status = null,
     ) {
         if (1 !== preg_match(self::SLUG_PATTERN, $slug)) {
             throw new \InvalidArgumentException(\sprintf('The example slug "%s" is not valid: lowercase letters, digits and single dashes only.', $slug));
@@ -57,6 +61,14 @@ final readonly class Example
 
         if (null !== $component && null !== $group) {
             throw new \InvalidArgumentException(\sprintf('The example "%s" has a component: only a documentation page has a group.', $slug));
+        }
+
+        if (null !== $status && null !== $component) {
+            throw new \InvalidArgumentException(\sprintf('The example "%s" has a component: only a documentation page has a status.', $slug));
+        }
+
+        if (ComponentStatus::Hidden === $status) {
+            throw new \InvalidArgumentException(\sprintf('The documentation page "%s" cannot be hidden: leave it out instead.', $slug));
         }
 
         if (null !== $source && ([] !== $props || null !== $content)) {

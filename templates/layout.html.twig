@@ -9,11 +9,12 @@
     <script src="{{ ux_showcase_asset('showcase.js') }}" defer></script>
     {% block head %}{% endblock %}
 </head>
-<body class="showcase"{% if configuration.primaryColor %} style="--showcase-primary: {{ configuration.primaryColor }}"{% endif %}>
+<body class="showcase{% block body_class %}{% endblock %}"{% if configuration.primaryColor %} style="--showcase-primary: {{ configuration.primaryColor }}"{% endif %}>
     <header class="showcase-header">
         {% if configuration.logo %}<img src="{{ configuration.logo }}" alt="">{% endif %}
         <h1>{{ configuration.title }}</h1>
         {% block header %}{% endblock %}
+        {% block controls %}{% endblock %}
         <button type="button" class="showcase-menu-toggle" aria-expanded="false" aria-controls="showcase-menu" data-ux-showcase-menu-toggle>{{ 'nav.menu'|trans({}, 'UxShowcaseBundle') }}</button>
     </header>
     <div class="showcase-shell">
@@ -22,5 +23,6 @@
             {% block body %}{% endblock %}
         </main>
     </div>
+    {% block footer %}{% endblock %}
 </body>
 </html>

@@ -40,7 +40,7 @@ final class ScreenTest extends TestCase
         self::assertSame(['Demo kit', 'Other'], $this->texts($crawler, '//section[contains(@class, "showcase-library")]/h2'));
         $demo = $crawler->filterXPath('//section[@aria-labelledby="library-demo"]');
         self::assertSame(['General', 'Form', 'Layout', 'Foundations', 'Experimental'], $this->texts($demo, '//h3'));
-        self::assertSame(['Button', 'Counter', 'Input', 'Card', 'Colours', 'Chart'], $this->texts($demo, '//li/a'));
+        self::assertSame(['Button', 'Counter', 'Input', 'Card', 'CompanyBuyersAccountOverviewSummary', 'Colours', 'Spacing', 'Chart'], $this->texts($demo, '//li/a'));
     }
 
     public function testIndexShowsStatusBadgesAndHidesHiddenComponents(): void
@@ -64,7 +64,7 @@ final class ScreenTest extends TestCase
         self::assertSame('/_showcase/demo/Demo:Form:Input', $menu->filterXPath('//a[starts-with(normalize-space(), "Input")]')->attr('href'));
         self::assertSame('/_showcase/demo/_docs/colours', $menu->filterXPath('//a[normalize-space()="Colours"]')->attr('href'));
         self::assertSame(['Waiting'], $this->texts($menu, '//li[a[starts-with(normalize-space(), "Chart")]]//span[contains(@class, "showcase-badge")]'));
-        self::assertCount(0, $menu->filterXPath('//li[a[normalize-space()="Plain"]]//span'));
+        self::assertCount(0, $menu->filterXPath('//li[a[normalize-space()="Plain"]]//span[contains(@class, "showcase-badge")]'));
         self::assertSame(['page'], $this->attributes($menu, '//a[@aria-current]', 'aria-current'));
         self::assertSame('/_showcase/', $menu->filterXPath('//a[@aria-current]')->attr('href'));
         self::assertCount(1, $crawler->filterXPath('//main//section[@aria-labelledby="library-demo"]'));
@@ -165,22 +165,64 @@ final class ScreenTest extends TestCase
         self::assertSame(200, $this->client()->getResponse()->getStatusCode());
     }
 
-    public function testComponentPageShowsOneTabsetPerExampleWithPreviewCodeAndProps(): void
+    public function testComponentPageShowsTheTitleThenTheLargePreviewThenCodeAndPropsWithoutTabs(): void
     {
         $crawler = $this->get('/_showcase/demo/Demo:Button');
 
         self::assertSame(['Primary', 'Dangerous action', 'With icon', 'In a toolbar'], $this->texts($crawler, '//article/header/h3'));
+        self::assertCount(0, $crawler->filterXPath('//*[@role="tab" or @role="tablist" or @role="tabpanel"]'));
         $primary = $crawler->filterXPath('//article[@id="example-primary"]');
-        self::assertSame(['Preview', 'Code', 'Props'], $this->texts($primary, '//*[@role="tab"]'));
-        self::assertCount(3, $primary->filterXPath('//*[@role="tabpanel"]'));
-        $selected = $primary->filterXPath('//*[@role="tab"][@aria-selected="true"]');
-        self::assertCount(1, $selected);
-        self::assertSame('Preview', $selected->text());
-        // Every tab names the panel it controls, and the panel names the tab back.
-        $tab = $primary->filterXPath('//*[@role="tab"][normalize-space()="Code"]');
-        $panel = $primary->filterXPath('//*[@id="'.$tab->attr('aria-controls').'"]');
-        self::assertSame('tabpanel', $panel->attr('role'));
-        self::assertSame($tab->attr('id'), $panel->attr('aria-labelledby'));
+        // In the page, in this order: title, preview, then (readable without JavaScript) the code and the props.
+        self::assertSame(['header', 'div', 'details', 'details'], array_map(static fn (\DOMNode $node): string => $node->nodeName, iterator_to_array($crawler->filterXPath('//article[@id="example-primary"]/*'))));
+        self::assertSame('/_showcase/demo/Demo:Button/primary/preview', $crawler->filterXPath('//article[@id="example-primary"]/div[contains(@class, "showcase-preview")]//iframe')->attr('src'));
+        self::assertSame(['Code', 'Props'], $this->texts($crawler, '//article[@id="example-primary"]/details/summary'));
+        self::assertStringContainsString('Demo:Button', $primary->filterXPath('.//details[@data-ux-showcase-details="code"]//pre')->text());
+        self::assertGreaterThan(0, $primary->filterXPath('.//details[@data-ux-showcase-details="props"]//table//tbody/tr')->count());
+    }
+
+    public function testTheBarePageAndTheIndexHaveNoBottomBar(): void
+    {
+        self::assertCount(0, $this->get('/_showcase/')->filterXPath('//*[@data-ux-showcase-footer or @data-ux-showcase-panel]'));
+        self::assertCount(0, $this->get('/_showcase/demo/Demo:Button/primary/preview')->filterXPath('//*[@data-ux-showcase-footer or @data-ux-showcase-panel]'));
+    }
+
+    public function testThePagesOfExamplesHaveABottomBarWithTheirOwnChoicesAndThePanelButtons(): void
+    {
+        $crawler = $this->get('/_showcase/demo/Demo:Button');
+
+        $footer = $crawler->filterXPath('//div[@data-ux-showcase-footer]');
+        self::assertCount(1, $footer);
+        self::assertSame('Primary', trim($footer->filterXPath('.//*[@data-current-name]')->text()));
+        self::assertSame(['', 'responsive', 'mobile', 'tablet', 'desktop'], $this->attributes($footer, './/select[@data-override="viewport"]/option', 'value'));
+        self::assertSame(['', 'none', 'light', 'white', 'dark'], $this->attributes($footer, './/select[@data-override="background"]/option', 'value'));
+        self::assertSame('From the header', trim($footer->filterXPath('.//select[@data-override="viewport"]/option[1]')->text()));
+        self::assertCount(1, $footer->filterXPath('.//button[@data-override-reset][@hidden]'));
+        // Each button says what it opens and that it is closed; the panel is a dialog that is closed too.
+        self::assertSame(['Code', 'Props'], $this->texts($footer, './/button[@data-panel-toggle]'));
+        self::assertSame(['false', 'false'], $this->attributes($footer, './/button[@data-panel-toggle]', 'aria-expanded'));
+        self::assertSame(['showcase-panel', 'showcase-panel'], $this->attributes($footer, './/button[@data-panel-toggle]', 'aria-controls'));
+        $panel = $crawler->filterXPath('//div[@id="showcase-panel"]');
+        self::assertSame('dialog', $panel->attr('role'));
+        self::assertNotNull($panel->attr('hidden'));
+        self::assertCount(1, $panel->filterXPath('.//button[@data-panel-close]'));
+    }
+
+    public function testADocumentationPageHasNoPropsButton(): void
+    {
+        $crawler = $this->get('/_showcase/demo/_docs/colours');
+
+        self::assertSame(['Code'], $this->texts($crawler, '//div[@data-ux-showcase-footer]//button[@data-panel-toggle]'));
+        self::assertCount(0, $crawler->filterXPath('//details[@data-ux-showcase-details="props"]'));
+    }
+
+    public function testThePanelClosesWithEscapeGivesFocusBackAndNamesWhatItControls(): void
+    {
+        $script = $this->asset((string) $this->get('/_showcase/')->filterXPath('//script[@src]')->attr('src'));
+
+        self::assertStringContainsString("event.key === 'Escape'", $script);
+        self::assertStringContainsString('opener.focus()', $script);
+        self::assertStringContainsString("setAttribute('aria-expanded'", $script);
+        self::assertStringContainsString('IntersectionObserver', $script);
     }
 
     public function testComponentPageOffersTheWidthsAndTheBackgroundsOfTheConfiguration(): void
@@ -264,24 +306,23 @@ final class ScreenTest extends TestCase
         self::assertContains('footer', array_map(static fn (\DOMNode $node): string => $node->textContent, iterator_to_array($blocks)));
     }
 
-    public function testAFreeExampleOfAComponentHasNoPropsTab(): void
+    public function testAFreeExampleOfAComponentHasNoPropsDetails(): void
     {
         $crawler = $this->get('/_showcase/demo/Demo:Button');
 
         $free = $crawler->filterXPath('//article[@id="example-in-a-toolbar"]');
-        self::assertSame(['Preview', 'Code'], $this->texts($free, '//*[@role="tab"]'));
+        self::assertSame(['Code'], $this->texts($crawler, '//article[@id="example-in-a-toolbar"]/details/summary'));
         self::assertCount(0, $free->filterXPath('//table'));
-        self::assertCount(2, $free->filterXPath('//*[@role="tabpanel"]'));
     }
 
-    public function testADocumentationPageRendersWithoutAPropsTab(): void
+    public function testADocumentationPageRendersWithoutAPropsDetails(): void
     {
         $crawler = $this->get('/_showcase/demo/_docs/colours');
 
         self::assertSame(200, $this->client()->getResponse()->getStatusCode());
         self::assertSame('Colours', $crawler->filterXPath('//main//h2')->text());
-        self::assertSame(['Preview', 'Code'], $this->texts($crawler, '//*[@role="tab"]'));
-        self::assertStringContainsString('<li style="color: #0d6efd">Primary</li>', $crawler->filterXPath('//pre')->text());
+        self::assertSame(['Code'], $this->texts($crawler, '//article/details/summary'));
+        self::assertStringContainsString('<li style="color: #0d6efd">Primary</li>', $crawler->filterXPath('//article//pre')->text());
         self::assertSame('/_showcase/demo/_docs/colours/preview', $crawler->filterXPath('//iframe')->attr('src'));
         self::assertSame('Preview of Colours', $crawler->filterXPath('//iframe')->attr('title'));
     }
@@ -327,6 +368,63 @@ final class ScreenTest extends TestCase
         self::assertCount(1, $crawler->filterXPath('//*[@data-action="add-to-page"]'), 'the default content of the block is kept by parent()');
     }
 
+    public function testADocumentationPageStatusIsShownInTheIndexTheMenuAndThePageAndAbsentWhenNotGiven(): void
+    {
+        $crawler = $this->get('/_showcase/');
+        self::assertSame(['Waiting', 'Documentation'], $this->texts($crawler, '//main//li[a[normalize-space()="Spacing"]]//span[contains(@class, "showcase-badge")]'));
+        self::assertSame(['Documentation'], $this->texts($crawler, '//main//li[a[normalize-space()="Colours"]]//span[contains(@class, "showcase-badge")]'));
+        self::assertSame(['Waiting'], $this->texts($crawler, '//nav[@id="showcase-menu"]//li[a[starts-with(normalize-space(), "Spacing")]]//span[contains(@class, "showcase-badge")]'));
+        self::assertSame([], $this->texts($crawler, '//nav[@id="showcase-menu"]//li[a[starts-with(normalize-space(), "Colours")]]//span[contains(@class, "showcase-badge")]'));
+
+        $page = $this->get('/_showcase/demo/_docs/spacing');
+        self::assertSame(['Waiting'], $this->texts($page, '//div[@class="showcase-page-head"]//span[contains(@class, "showcase-badge")]'));
+        self::assertSame([], $this->texts($this->get('/_showcase/demo/_docs/colours'), '//div[@class="showcase-page-head"]//span[contains(@class, "showcase-badge")]'));
+    }
+
+    public function testALongLabelOfTheMenuCanWrapBetweenItsWordsAndKeepsTheBadgeApart(): void
+    {
+        $crawler = $this->get('/_showcase/');
+
+        $label = $crawler->filterXPath('//nav[@id="showcase-menu"]//a[contains(@href, "CompanyBuyers")]/span[contains(@class, "showcase-menu-label")]');
+        self::assertCount(1, $label);
+        self::assertSame('Company<wbr>Buyers<wbr>Account<wbr>Overview<wbr>Summary', $label->html());
+        $style = $this->asset((string) $crawler->filterXPath('//link[@rel="stylesheet"]')->attr('href'));
+        self::assertMatchesRegularExpression('/\.showcase-menu-label \{[^}]*min-width: 0;[^}]*overflow-wrap: anywhere;/', $style);
+        self::assertMatchesRegularExpression('/\.showcase-menu \.showcase-badge \{[^}]*flex: none;/', $style);
+    }
+
+    public function testTheBarePageGivesTheScrollbarGutterBackToTheDocument(): void
+    {
+        $this->get('/_showcase/demo/Demo:Button/primary/preview');
+
+        $html = (string) $this->client()->getResponse()->getContent();
+        self::assertMatchesRegularExpression('#<style data-ux-showcase>html \{ overflow-y: auto !important; scrollbar-gutter: auto !important; \}</style>\s*</head>#', $html);
+    }
+
+    public function testTheWidthAndBackgroundChoicesAreInTheHeaderOfPagesWithPreviewsOnly(): void
+    {
+        foreach (['/_showcase/demo/Demo:Button', '/_showcase/demo/_docs/colours'] as $path) {
+            $crawler = $this->get($path);
+            self::assertCount(1, $crawler->filterXPath('//header[contains(@class, "showcase-header")]//*[@data-ux-showcase-controls]'), $path);
+            self::assertCount(0, $crawler->filterXPath('//main//*[@data-ux-showcase-controls]'), $path);
+        }
+        $index = $this->get('/_showcase/');
+        self::assertCount(0, $index->filterXPath('//*[@data-ux-showcase-controls]'));
+    }
+
+    public function testTheChoicesFollowTheVisitorToTheOtherPagesThroughTheLinks(): void
+    {
+        $crawler = $this->get('/_showcase/demo/Demo:Button?viewport=mobile&background=dark');
+
+        $menu = $crawler->filterXPath('//nav[@id="showcase-menu"]');
+        self::assertSame('/_showcase/demo/Demo:Form:Input?viewport=mobile&background=dark', $menu->filterXPath('//a[starts-with(normalize-space(), "Input")]')->attr('href'));
+        self::assertSame('/_showcase/demo/_docs/colours?viewport=mobile&background=dark', $menu->filterXPath('//a[normalize-space()="Colours"]')->attr('href'));
+        self::assertSame('/_showcase/?viewport=mobile&background=dark', $menu->filterXPath('//a[@class="showcase-menu-home"]')->attr('href'));
+        // The index has no choices of its own, and still passes them on; the defaults add nothing to the addresses.
+        self::assertSame('/_showcase/demo/Demo:Form:Input?background=dark', $this->get('/_showcase/?background=dark')->filterXPath('//main//a[starts-with(normalize-space(), "Input")]')->attr('href'));
+        self::assertSame('/_showcase/demo/Demo:Form:Input', $this->get('/_showcase/demo/Demo:Button')->filterXPath('//nav//a[starts-with(normalize-space(), "Input")]')->attr('href'));
+    }
+
     public function testBarePageRendersTheExampleInTheTemplateOfTheLibrary(): void
     {
         $crawler = $this->get('/_showcase/demo/Demo:Button/primary/preview');
@@ -341,7 +439,7 @@ final class ScreenTest extends TestCase
         self::assertSame('Save', trim($crawler->filterXPath('//div[@class="demo-wrapper"]/button')->text()));
         self::assertSame('Primary', $crawler->filterXPath('//title')->text());
         // Nothing of the showcase screen around it.
-        self::assertCount(0, $crawler->filterXPath('//*[@role="tablist"]'));
+        self::assertCount(0, $crawler->filterXPath('//*[@data-ux-showcase-footer]'));
     }
 
     public function testBarePageCarriesTheHeightScriptAfterTheContent(): void
@@ -456,7 +554,7 @@ final class ScreenTest extends TestCase
         self::assertStringStartsWith('text/javascript', (string) $response->headers->get('Content-Type'));
         self::assertStringContainsString('max-age=31536000', (string) $response->headers->get('Cache-Control'));
         self::assertStringContainsString('public', (string) $response->headers->get('Cache-Control'));
-        self::assertStringContainsString('role="tab"', (string) $response->getContent());
+        self::assertStringContainsString('data-ux-showcase-footer', (string) $response->getContent());
         $etag = (string) $response->headers->get('ETag');
         self::assertNotSame('', $etag);
 
@@ -539,6 +637,13 @@ final class ScreenTest extends TestCase
         $expected = ['ux_showcase_index', 'ux_showcase_component', 'ux_showcase_doc', 'ux_showcase_preview', 'ux_showcase_preview_try', 'ux_showcase_preview_link', 'ux_showcase_doc_preview', 'ux_showcase_asset'];
         self::assertSame($expected, array_values(array_intersect($expected, $names)));
         self::assertCount(8, $names);
+    }
+
+    private function asset(string $url): string
+    {
+        $this->client()->request('GET', $url);
+
+        return (string) $this->client()->getResponse()->getContent();
     }
 
     private function client(): KernelBrowser

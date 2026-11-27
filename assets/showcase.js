@@ -1,8 +1,8 @@
 /*
- * Behaviour of the showcase screens: tabs of an example, width and background choices, height of the frames, the form
- * that tries other values.
+ * Behaviour of the showcase screens: width and background choices (header, then the bar at the bottom of a page),
+ * code and props panel, height of the frames, the form that tries other values.
  * Standalone: no framework, no controller to register in the application, no inline handler.
- * Without it the pages still work: every panel is shown and the choices are links that reload the page.
+ * Without it the pages still work: code and props are read under each example and the choices are links that reload the page.
  */
 (function () {
     'use strict';
@@ -11,50 +11,6 @@
 
     function all(root, selector) {
         return Array.prototype.slice.call(root.querySelectorAll(selector));
-    }
-
-    // Tabs: roles are in the markup, this adds the selection and the keyboard (arrows, Home, End).
-    function initTabs(root) {
-        var tabs = all(root, '[role="tab"]');
-        var panels = tabs.map(function (tab) {
-            return document.getElementById(tab.getAttribute('aria-controls'));
-        });
-
-        function select(index, focus) {
-            tabs.forEach(function (tab, i) {
-                var selected = i === index;
-                tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-                tab.tabIndex = selected ? 0 : -1;
-                panels[i].hidden = !selected;
-            });
-            if (focus) {
-                tabs[index].focus();
-            }
-        }
-
-        tabs.forEach(function (tab, index) {
-            tab.addEventListener('click', function () {
-                select(index, false);
-            });
-            tab.addEventListener('keydown', function (event) {
-                var target = null;
-                if (event.key === 'ArrowRight') {
-                    target = (index + 1) % tabs.length;
-                } else if (event.key === 'ArrowLeft') {
-                    target = (index - 1 + tabs.length) % tabs.length;
-                } else if (event.key === 'Home') {
-                    target = 0;
-                } else if (event.key === 'End') {
-                    target = tabs.length - 1;
-                }
-                if (target !== null) {
-                    event.preventDefault();
-                    select(target, true);
-                }
-            });
-        });
-
-        select(0, false);
     }
 
     function frames() {
@@ -71,7 +27,58 @@
         });
     }
 
-    // Width and background: applied in place, and the address is updated so that it can be shared.
+    // The choice follows the visitor: the links of the side menu carry it to the other pages.
+    function carry(name, value) {
+        all(document, '[data-ux-showcase-menu] a[href]').forEach(function (link) {
+            var url = new URL(link.href);
+            if (value) {
+                url.searchParams.set(name, value);
+            } else {
+                url.searchParams.delete(name);
+            }
+            link.href = url.toString();
+        });
+    }
+
+    // What the frames show: the choice of the bar at the bottom of the page where there is one, else the one of the header
+    // (the link marked as current).
+    function applyDisplay() {
+        var width = null;
+        var background = null;
+        var footer = document.querySelector('[data-ux-showcase-footer]');
+        var viewportSelect = footer && footer.querySelector('[data-override="viewport"]');
+        var backgroundSelect = footer && footer.querySelector('[data-override="background"]');
+
+        if (viewportSelect && viewportSelect.value !== '') {
+            width = viewportSelect.options[viewportSelect.selectedIndex].getAttribute('data-width');
+        } else {
+            var viewport = document.querySelector('[data-viewport][aria-current]');
+            width = viewport ? viewport.getAttribute('data-width') : null;
+        }
+        if (backgroundSelect && backgroundSelect.value !== '') {
+            background = backgroundSelect.value === 'none' ? '' : backgroundSelect.value;
+        } else {
+            var current = document.querySelector('[data-background][aria-current]');
+            background = current ? current.getAttribute('data-background') : '';
+        }
+
+        frames().forEach(function (frame) {
+            frame.style.width = width ? width + 'px' : '100%';
+            var url = new URL(frame.getAttribute('src'), window.location.href);
+            if ((url.searchParams.get('background') || '') === background) {
+                return;
+            }
+            if (background) {
+                url.searchParams.set('background', background);
+            } else {
+                url.searchParams.delete('background');
+            }
+            frame.setAttribute('src', url.pathname + url.search);
+        });
+    }
+
+    // Width and background of the header: applied in place, the address is updated so that it can be shared, and the links
+    // of the menu carry the choice to the other pages.
     function initControls(root) {
         var viewports = all(root, '[data-viewport]');
         var backgrounds = all(root, '[data-background]');
@@ -79,18 +86,16 @@
         viewports.forEach(function (link) {
             link.addEventListener('click', function (event) {
                 event.preventDefault();
-                var width = link.getAttribute('data-width');
-                frames().forEach(function (frame) {
-                    frame.style.width = width ? width + 'px' : '100%';
-                });
                 markCurrent(viewports, link);
                 window.history.replaceState(null, '', link.href);
+                carry('viewport', link.getAttribute('data-viewport'));
                 // The links of the other group keep the choice of this one.
                 backgrounds.forEach(function (other) {
                     var url = new URL(other.href);
                     url.searchParams.set('viewport', link.getAttribute('data-viewport'));
                     other.href = url.toString();
                 });
+                applyDisplay();
             });
         });
 
@@ -98,17 +103,9 @@
             link.addEventListener('click', function (event) {
                 event.preventDefault();
                 var background = link.getAttribute('data-background');
-                frames().forEach(function (frame) {
-                    var url = new URL(frame.getAttribute('src'), window.location.href);
-                    if (background) {
-                        url.searchParams.set('background', background);
-                    } else {
-                        url.searchParams.delete('background');
-                    }
-                    frame.setAttribute('src', url.pathname + url.search);
-                });
                 markCurrent(backgrounds, link);
                 window.history.replaceState(null, '', link.href);
+                carry('background', background);
                 viewports.forEach(function (other) {
                     var url = new URL(other.href);
                     if (background) {
@@ -118,8 +115,178 @@
                     }
                     other.href = url.toString();
                 });
+                applyDisplay();
             });
         });
+    }
+
+    // The bar at the bottom of a page of examples: width and background of this page (they win over the header's, and say
+    // so), the example in view, and the panel that shows its code or its props.
+    function initFooter(footer) {
+        var selects = all(footer, '[data-override]');
+        var reset = footer.querySelector('[data-override-reset]');
+        var panel = document.querySelector('[data-ux-showcase-panel]');
+        var body = panel.querySelector('[data-panel-body]');
+        var title = panel.querySelector('[data-panel-title]');
+        var toggles = all(footer, '[data-panel-toggle]');
+        var name = footer.querySelector('[data-current-name]');
+        var articles = all(document, '[data-ux-showcase-example]');
+        var current = articles[0] || null;
+        var openKind = null;
+        var opener = null;
+
+        function syncOverride() {
+            var overridden = false;
+            selects.forEach(function (select) {
+                var on = select.value !== '';
+                select.classList.toggle('is-override', on);
+                overridden = overridden || on;
+            });
+            reset.hidden = !overridden;
+            if (overridden) {
+                footer.setAttribute('data-overridden', '');
+            } else {
+                footer.removeAttribute('data-overridden');
+            }
+            applyDisplay();
+        }
+
+        selects.forEach(function (select) {
+            select.addEventListener('change', syncOverride);
+        });
+        reset.addEventListener('click', function () {
+            selects.forEach(function (select) {
+                select.value = '';
+            });
+            syncOverride();
+        });
+
+        function details(kind) {
+            return current ? current.querySelector('[data-ux-showcase-details="' + kind + '"] .showcase-details-body') : null;
+        }
+
+        function fill() {
+            var source = details(openKind);
+            body.innerHTML = '';
+            if (source) {
+                body.appendChild(source.cloneNode(true));
+            }
+            title.textContent = (openKind === 'code' ? footer.querySelector('[data-panel-toggle="code"]') : footer.querySelector('[data-panel-toggle="props"]')).textContent + ' - ' + (current ? current.getAttribute('data-title') : '');
+        }
+
+        function closePanel(restoreFocus) {
+            if (openKind === null) {
+                return;
+            }
+            openKind = null;
+            panel.hidden = true;
+            toggles.forEach(function (toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+            });
+            if (restoreFocus && opener) {
+                opener.focus();
+            }
+        }
+
+        function openPanel(kind, button) {
+            openKind = kind;
+            opener = button;
+            toggles.forEach(function (toggle) {
+                toggle.setAttribute('aria-expanded', toggle === button ? 'true' : 'false');
+            });
+            fill();
+            panel.hidden = false;
+            panel.style.setProperty('--showcase-footer-height', footer.offsetHeight + 'px');
+            panel.focus();
+        }
+
+        toggles.forEach(function (toggle) {
+            var kind = toggle.getAttribute('data-panel-toggle');
+            toggle.addEventListener('click', function () {
+                if (openKind === kind) {
+                    closePanel(true);
+                } else {
+                    openPanel(kind, toggle);
+                }
+            });
+        });
+        panel.querySelector('[data-panel-close]').addEventListener('click', function () {
+            closePanel(true);
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && openKind !== null) {
+                event.preventDefault();
+                closePanel(true);
+            }
+        });
+
+        // Props only exist for the example of a component.
+        function setCurrent(article) {
+            if (!article || article === current && name.textContent === article.getAttribute('data-title')) {
+                return;
+            }
+            current = article;
+            articles.forEach(function (other) {
+                other.classList.toggle('is-current', other === article);
+            });
+            name.textContent = article.getAttribute('data-title');
+            toggles.forEach(function (toggle) {
+                var kind = toggle.getAttribute('data-panel-toggle');
+                toggle.hidden = !article.querySelector('[data-ux-showcase-details="' + kind + '"]');
+            });
+            if (openKind !== null) {
+                if (details(openKind)) {
+                    fill();
+                } else {
+                    closePanel(false);
+                }
+            }
+        }
+
+        // The example that fills the most of the screen is the current one.
+        function mostVisible() {
+            var best = null;
+            var bestHeight = 0;
+            var top = 0;
+            var bottom = window.innerHeight - footer.offsetHeight;
+            articles.forEach(function (article) {
+                var rect = article.getBoundingClientRect();
+                var height = Math.min(rect.bottom, bottom) - Math.max(rect.top, top);
+                if (height > bestHeight) {
+                    best = article;
+                    bestHeight = height;
+                }
+            });
+
+            return best;
+        }
+
+        articles.forEach(function (article) {
+            var heading = article.querySelector('.showcase-example-head h3 a');
+            if (heading) {
+                heading.addEventListener('click', function () {
+                    setCurrent(article);
+                });
+            }
+        });
+        if ('IntersectionObserver' in window) {
+            var observer = new IntersectionObserver(function () {
+                setCurrent(mostVisible());
+            }, { threshold: [0, 0.1, 0.25, 0.5, 0.75, 1] });
+            articles.forEach(function (article) {
+                observer.observe(article);
+            });
+        }
+        window.addEventListener('resize', function () {
+            setCurrent(mostVisible());
+        });
+        window.addEventListener('scroll', function () {
+            setCurrent(mostVisible());
+        }, { passive: true });
+
+        current = null;
+        setCurrent(mostVisible() || articles[0]);
+        syncOverride();
     }
 
     // The bare page reports its height; a frame with a fixed height (data-fixed-height) ignores it.
@@ -581,7 +748,8 @@
         });
     }
 
-    // Side menu: always shown on a wide screen, folded behind the button of the header on a narrow one.
+    // Side menu: always shown on a wide screen, folded behind the button of the header on a narrow one, with the width and
+    // background choices of the header.
     function initMenu(menu) {
         var button = document.querySelector('[data-ux-showcase-menu-toggle]');
         if (!button) {
@@ -594,6 +762,13 @@
             } else {
                 menu.removeAttribute('data-open');
             }
+            all(document, '[data-ux-showcase-controls]').forEach(function (controls) {
+                if (open) {
+                    controls.setAttribute('data-open', '');
+                } else {
+                    controls.removeAttribute('data-open');
+                }
+            });
             button.setAttribute('aria-expanded', open ? 'true' : 'false');
         });
     }
@@ -601,7 +776,7 @@
     function init() {
         document.body.classList.add('showcase-js');
         all(document, '[data-ux-showcase-menu]').forEach(initMenu);
-        all(document, '[data-ux-showcase-tabs]').forEach(initTabs);
+        all(document, '[data-ux-showcase-footer]').forEach(initFooter);
         all(document, '[data-ux-showcase-controls]').forEach(initControls);
         all(document, '[data-ux-showcase-try]').forEach(initTry);
         initFrameMessages();

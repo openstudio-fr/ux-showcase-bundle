@@ -26,8 +26,9 @@ use Twig\TokenStream;
 
 /**
  * {% showcase_example 'slug' [titled 'Title'] [with { prop: 'value' }] [options { background: 'dark' }] %}…{% end_showcase_example %}
- * {% showcase_free 'slug' [titled 'Title'] [options { wrapper: false }] %}…{% end_showcase_free %}.
+ * {% showcase_free 'slug' [titled 'Title'] [status 'waiting'] [options { wrapper: false }] %}…{% end_showcase_free %}.
  *
+ * `status` (ready or waiting) gives a documentation page a badge; it is for showcase_free only.
  * The parts after the slug come in any order, each at most once. Props and options are literals: strings, numbers,
  * true, false, null, lists and hashes of them.
  *
@@ -58,13 +59,14 @@ final class ExampleTokenParser extends AbstractTokenParser
         }
 
         $title = null;
+        $status = null;
         $props = [];
         $options = [];
         $seen = [];
         while (!$stream->test(Token::BLOCK_END_TYPE)) {
             $keyword = $stream->expect(Token::NAME_TYPE)->getValue();
             \assert(\is_string($keyword));
-            $allowed = $this->free ? ['titled', 'options'] : ['titled', 'with', 'options'];
+            $allowed = $this->free ? ['titled', 'status', 'options'] : ['titled', 'with', 'options'];
             if (!\in_array($keyword, $allowed, true) || isset($seen[$keyword])) {
                 throw new SyntaxError(\sprintf('Unexpected "%s" in "%s": expected %s, each once.', $keyword, $this->getTag(), implode(', ', $allowed)), $stream->getCurrent()->getLine(), $stream->getSourceContext());
             }
@@ -77,6 +79,12 @@ final class ExampleTokenParser extends AbstractTokenParser
                         throw new SyntaxError('"titled" expects a string literal.', $line, $stream->getSourceContext());
                     }
                     $title = $value;
+                    break;
+                case 'status':
+                    if (!\in_array($value, ['ready', 'waiting'], true)) {
+                        throw new SyntaxError('"status" expects \'ready\' or \'waiting\'.', $line, $stream->getSourceContext());
+                    }
+                    $status = $value;
                     break;
                 case 'with':
                     if (!\is_array($value) || array_is_list($value) && [] !== $value) {
@@ -93,7 +101,7 @@ final class ExampleTokenParser extends AbstractTokenParser
         $stream->expect(Token::BLOCK_END_TYPE);
         $this->skipBody($stream);
 
-        return new ExampleNode($this->free, $slug, $title, $props, $options, $line);
+        return new ExampleNode($this->free, $slug, $title, $props, $options, $line, $status);
     }
 
     /**

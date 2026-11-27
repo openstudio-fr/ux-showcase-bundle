@@ -11,7 +11,7 @@
                     <ul class="showcase-list">
                         {% for component in group.components %}
                             <li>
-                                <a href="{{ path('ux_showcase_component', {library: library.name, component: component.name}) }}">{{ component.label }}</a>
+                                <a href="{{ path('ux_showcase_component', {library: library.name, component: component.name}|merge(state.carried(configuration))) }}">{{ component.label }}</a>
                                 <code class="showcase-name">{{ component.name }}</code>
                                 {% if component.status %}
                                     <span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
@@ -23,7 +23,10 @@
                         {% endfor %}
                         {% for page in group.docPages %}
                             <li>
-                                <a href="{{ path('ux_showcase_doc', {library: library.name, slug: page.slug}) }}">{{ page.title }}</a>
+                                <a href="{{ path('ux_showcase_doc', {library: library.name, slug: page.slug}|merge(state.carried(configuration))) }}">{{ page.title }}</a>
+                                {% if page.status %}
+                                    <span class="showcase-badge showcase-badge-{{ page.status.value }}">{{ ('status.' ~ page.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
+                                {% endif %}
                                 <span class="showcase-badge showcase-badge-doc">{{ 'index.doc_page'|trans({}, 'UxShowcaseBundle') }}</span>
                             </li>
                         {% endfor %}
