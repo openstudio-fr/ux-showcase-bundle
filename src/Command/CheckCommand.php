@@ -18,6 +18,8 @@ use OpenStudio\UxShowcaseBundle\Example\Example;
 use OpenStudio\UxShowcaseBundle\Example\PreviewOptionsResolver;
 use OpenStudio\UxShowcaseBundle\Exception\ShowcaseException;
 use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
+use OpenStudio\UxShowcaseBundle\Preview\CheckRequestFactoryInterface;
+use OpenStudio\UxShowcaseBundle\Preview\DefaultCheckRequestFactory;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -25,10 +27,7 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -47,6 +46,8 @@ final class CheckCommand extends Command
         private readonly UrlGeneratorInterface $router,
         private readonly RequestStack $requests,
         private readonly Environment $twig,
+        /** @var iterable<CheckRequestFactoryInterface> */
+        private readonly iterable $requestFactories = [],
     ) {
         parent::__construct();
     }
@@ -77,6 +78,7 @@ final class CheckCommand extends Command
         }
 
         try {
+            $requestFactory = $this->requestFactory();
             $libraries = $this->libraries($input);
             if (!\is_array($libraries)) {
                 $output->writeln(\sprintf('<error>Unknown library "%s". Known: %s.</error>', $libraries, implode(', ', array_map(static fn (ComponentLibraryInterface $library): string => $library->getName(), $this->registry->libraries())) ?: 'none'));
@@ -84,7 +86,7 @@ final class CheckCommand extends Command
                 return Command::INVALID;
             }
 
-            $outcomes = $this->checkAll($libraries, true === $input->getOption('strict'), true === $input->getOption('with-data'));
+            $outcomes = $this->checkAll($libraries, $requestFactory, true === $input->getOption('strict'), true === $input->getOption('with-data'));
         } catch (ShowcaseException $exception) {
             $output->writeln(\sprintf('<error>The showcase cannot be built: %s</error>', $exception->getMessage()));
 
@@ -113,6 +115,19 @@ final class CheckCommand extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    private function requestFactory(): CheckRequestFactoryInterface
+    {
+        $factories = [...$this->requestFactories];
+        if ([] === $factories) {
+            return new DefaultCheckRequestFactory();
+        }
+        if (1 === \count($factories)) {
+            return $factories[0];
+        }
+
+        throw new ShowcaseException(\sprintf('Only one request factory can be used, %d are registered: %s.', \count($factories), implode(', ', array_map(static fn (CheckRequestFactoryInterface $factory): string => $factory::class, $factories))));
     }
 
     /**
@@ -144,7 +159,7 @@ final class CheckCommand extends Command
      *
      * @return list<CheckOutcome>
      */
-    private function checkAll(array $libraries, bool $strict, bool $withData): array
+    private function checkAll(array $libraries, CheckRequestFactoryInterface $requestFactory, bool $strict, bool $withData): array
     {
         $strictBefore = $this->twig->isStrictVariables();
         if ($strict) {
@@ -152,15 +167,14 @@ final class CheckCommand extends Command
         }
 
         // The main request of a sub-request: what csrf_token() and the session of the application look for.
-        $main = Request::create('/');
-        $main->setSession(new Session(new MockArraySessionStorage()));
+        $main = $requestFactory->createRequest('/');
         $this->requests->push($main);
 
         $outcomes = [];
         try {
             foreach ($libraries as $library) {
                 foreach ($this->examples($library) as $example) {
-                    $outcomes[] = $this->check($library, $example, $strict, $withData);
+                    $outcomes[] = $this->check($library, $example, $requestFactory, $strict, $withData);
                 }
             }
         } finally {
@@ -188,7 +202,7 @@ final class CheckCommand extends Command
         return [...$examples, ...$this->registry->docPages($library->getName())];
     }
 
-    private function check(ComponentLibraryInterface $library, Example $example, bool $strict, bool $withData): CheckOutcome
+    private function check(ComponentLibraryInterface $library, Example $example, CheckRequestFactoryInterface $requestFactory, bool $strict, bool $withData): CheckOutcome
     {
         $name = $library->getName();
         if (!$withData && $this->previewResolver->resolve($library, $example)->needsData) {
@@ -199,8 +213,11 @@ final class CheckCommand extends Command
             ? $this->router->generate('ux_showcase_doc_preview', ['library' => $name, 'slug' => $example->slug])
             : $this->router->generate('ux_showcase_preview', ['library' => $name, 'component' => $example->component, 'slug' => $example->slug]);
 
-        $request = Request::create($path);
-        $request->setSession($this->requests->getMainRequest()?->getSession() ?? new Session(new MockArraySessionStorage()));
+        $request = $requestFactory->createRequest($path);
+        $mainSession = $this->requests->getMainRequest()?->getSession();
+        if (null !== $mainSession) {
+            $request->setSession($mainSession);
+        }
         $request->attributes->set(ShowcaseAccessListener::CHECK_ATTRIBUTE, true);
 
         $problems = [];

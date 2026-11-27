@@ -78,6 +78,9 @@ ux_showcase:
     libraries: {}                # see "Libraries"
 ```
 
+`viewports` is replaced as a whole, not merged by key: when a bundle (a theme) prepends its widths, the last declared
+configuration, usually the application's, is the list that stays.
+
 ### Access
 
 The showcase is a developer tool: it answers only when `kernel.debug` is on. Anywhere else, and for every route of the
@@ -653,6 +656,27 @@ showcase:
 
 Run it in the environment of the application (its `APP_ENV`, its database when `--with-data` is used): the command
 renders with the real container.
+
+### Applications with their own request
+
+The command renders with a plain `Request` and an in-memory session. An application whose pages need its own request or
+session class (a framework that type-hints its own `Request`, a session that carries the language) provides a factory:
+a service that implements `CheckRequestFactoryInterface` is picked up by autoconfiguration. It is called once for the
+main request on `/`, then once per preview path; a preview takes the session of the main request. Two factories are an
+error, the command names them.
+
+```php
+final class AppCheckRequestFactory implements CheckRequestFactoryInterface
+{
+    public function createRequest(string $uri): Request
+    {
+        $request = AppRequest::create($uri);
+        $request->setSession(new AppSession(new MockArraySessionStorage()));
+
+        return $request;
+    }
+}
+```
 
 ### Examples that need data
 

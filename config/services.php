@@ -66,7 +66,7 @@ return static function (ContainerConfigurator $container): void {
     }
 
     $services->set(CheckCommand::class)
-        ->args([service(ShowcaseRegistry::class), service(PreviewOptionsResolver::class), service('http_kernel'), service('router'), service('request_stack'), service('twig')])
+        ->args([service(ShowcaseRegistry::class), service(PreviewOptionsResolver::class), service('http_kernel'), service('router'), service('request_stack'), service('twig'), tagged_iterator('ux_showcase.check_request_factory')])
         ->tag('console.command');
 
     $services->set(ShowcaseAccessListener::class)
