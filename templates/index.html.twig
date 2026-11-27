@@ -5,6 +5,7 @@
         {% set library = entry.library %}
         <section class="showcase-library" aria-labelledby="library-{{ library.name }}">
             <h2 id="library-{{ library.name }}">{{ library.label }}</h2>
+            <div class="showcase-block">
             {% for group in entry.groups %}
                 <section class="showcase-group">
                     <h3>{{ group.name }}</h3>
@@ -33,6 +34,7 @@
                     </ul>
                 </section>
             {% endfor %}
+            </div>
         </section>
     {% else %}
         <p>{{ 'index.empty'|trans({}, 'UxShowcaseBundle') }}</p>

@@ -135,6 +135,29 @@ final class ScreenTest extends TestCase
         self::assertMatchesRegularExpression('/\.showcase\s*\{[^}]*background:\s*var\(--showcase-page-background,/', $css);
     }
 
+    public function testPreviewsTheTryFormAndTheListsOfTheHomePageSitInTheBlocksOfTheToolkit(): void
+    {
+        $this->get('/_showcase/_assets/showcase.css');
+        $css = (string) $this->client()->getResponse()->getContent();
+
+        self::assertMatchesRegularExpression('/\.showcase-block, \.showcase-frame, \.showcase-try \{[^}]*background-color: var\(--showcase-block-background, #fff\);[^}]*border: 1px solid[^}]*border-radius: 1rem;/', $css);
+        self::assertCount(2, $this->get('/_showcase/')->filterXPath('//main//section[contains(@class, "showcase-library")]/div[@class="showcase-block"]'));
+        self::assertGreaterThan(0, $this->get('/_showcase/demo/Demo:Button')->filterXPath('//article//div[@class="showcase-frame"]/iframe')->count());
+        self::assertCount(1, $this->get('/_showcase/demo/_docs/colours')->filterXPath('//article//div[@class="showcase-frame"]/iframe'));
+    }
+
+    public function testTheBlockBackgroundIsRenderedWhenConfigured(): void
+    {
+        $this->tearDown();
+        $this->kernel = Configuration::kernel(configuration: Configuration::demo() + ['theme' => ['block_background' => '#fffdf8']]);
+        $this->kernel->boot();
+        $client = $this->kernel->getContainer()->get('test.client');
+        self::assertInstanceOf(KernelBrowser::class, $client);
+        $this->client = $client;
+
+        self::assertSame('--showcase-block-background: #fffdf8', $this->get('/_showcase/')->filterXPath('//body')->attr('style'));
+    }
+
     public function testWithNoBackgroundNeitherTheHeaderNorTheBottomBarOffersOne(): void
     {
         $crawler = $this->get('/_showcase/demo/Demo:Button');

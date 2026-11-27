@@ -172,6 +172,20 @@ final class ConfigurationTest extends TestCase
         $this->configuration(['theme' => ['page_background' => $colour]]);
     }
 
+    public function testTheBlockBackgroundIsNoneByDefaultAndAcceptsASafeCssColour(): void
+    {
+        self::assertNull($this->configuration([])->blockBackground);
+        self::assertSame('#fffdf8', $this->configuration(['theme' => ['block_background' => '#fffdf8']])->blockBackground);
+    }
+
+    #[DataProvider('unsafeColours')]
+    public function testTheBlockBackgroundRefusesAnythingThatIsNotASafeCssColour(string $colour): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->configuration(['theme' => ['block_background' => $colour]]);
+    }
+
     public function testDefaultBackgroundsKeepTheirColoursAndOrder(): void
     {
         $backgrounds = $this->configuration([])->backgrounds;
