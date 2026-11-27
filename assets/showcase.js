@@ -120,6 +120,46 @@
         });
     }
 
+    // The Symfony debug toolbar is fixed at the bottom of the screen, over the bar: the bar sits on top of it while it is
+    // open, and leaves the corner of its button free once it is folded. It is added after the page is loaded, and it opens
+    // and folds, hence the observer.
+    function keepClearOfDebugToolbar(footer) {
+        var root = document.documentElement;
+        var scheduled = false;
+
+        function measure() {
+            scheduled = false;
+            var bar = document.querySelector('.sf-toolbarreset');
+            var toggle = document.querySelector('.sf-toolbar-toggle-button');
+            var height = 0;
+            var right = 0;
+            if (bar && window.getComputedStyle(bar).position === 'fixed') {
+                height = Math.round(bar.getBoundingClientRect().height);
+            }
+            if (height === 0 && toggle) {
+                var rect = toggle.getBoundingClientRect();
+                right = rect.width > 0 && rect.right > window.innerWidth - 4 ? Math.round(rect.width) + 8 : 0;
+            }
+            root.style.setProperty('--showcase-bottom-offset', height + 'px');
+            root.style.setProperty('--showcase-right-offset', right + 'px');
+            root.style.setProperty('--showcase-bar-height', footer.offsetHeight + 'px');
+        }
+
+        function schedule() {
+            if (!scheduled) {
+                scheduled = true;
+                window.requestAnimationFrame(measure);
+            }
+        }
+
+        if ('MutationObserver' in window) {
+            new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+        }
+        window.addEventListener('resize', schedule);
+        window.addEventListener('load', schedule);
+        measure();
+    }
+
     // The bar at the bottom of a page of examples: width and background of this page (they win over the header's, and say
     // so), the example in view, and the panel that shows its code or its props.
     function initFooter(footer) {
@@ -196,7 +236,6 @@
             });
             fill();
             panel.hidden = false;
-            panel.style.setProperty('--showcase-footer-height', footer.offsetHeight + 'px');
             panel.focus();
         }
 
@@ -287,6 +326,7 @@
         current = null;
         setCurrent(mostVisible() || articles[0]);
         syncOverride();
+        keepClearOfDebugToolbar(footer);
     }
 
     // The bare page reports its height; a frame with a fixed height (data-fixed-height) ignores it.

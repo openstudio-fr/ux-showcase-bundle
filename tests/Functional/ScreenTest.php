@@ -111,6 +111,38 @@ final class ScreenTest extends TestCase
         self::assertSame('--showcase-primary: #7b2cbf', $body->attr('style'));
     }
 
+    public function testWithNoBackgroundNeitherTheHeaderNorTheBottomBarOffersOne(): void
+    {
+        $crawler = $this->get('/_showcase/demo/Demo:Button');
+        self::assertCount(1, $crawler->filterXPath('//*[@data-ux-showcase-footer]//select[@data-override="background"]'));
+        self::assertGreaterThan(0, $crawler->filterXPath('//a[@data-background]')->count());
+
+        $this->tearDown();
+        $this->kernel = Configuration::kernel(configuration: Configuration::demo() + ['backgrounds' => []]);
+        $this->kernel->boot();
+        $client = $this->kernel->getContainer()->get('test.client');
+        self::assertInstanceOf(KernelBrowser::class, $client);
+        $this->client = $client;
+
+        $crawler = $this->get('/_showcase/demo/Demo:Button?background=dark');
+        self::assertCount(0, $crawler->filterXPath('//a[@data-background] | //*[@id="controls-background"] | //select[@data-override="background"] | //label[@for="footer-background"]'));
+        self::assertCount(1, $crawler->filterXPath('//a[@data-viewport][@aria-current]'), 'the width is still offered');
+        self::assertCount(1, $crawler->filterXPath('//select[@data-override="viewport"]'));
+        self::assertStringNotContainsString('background=dark', (string) $this->client()->getResponse()->getContent());
+    }
+
+    public function testTheBottomBarMakesRoomForTheDebugToolbarAndThePreviewStaysBesideTheTryForm(): void
+    {
+        $crawler = $this->get('/_showcase/');
+        $script = $this->asset((string) $crawler->filterXPath('//script[@src]')->attr('src'));
+        $style = $this->asset((string) $crawler->filterXPath('//link[@rel="stylesheet"]')->attr('href'));
+
+        self::assertStringContainsString('.sf-toolbarreset', $script);
+        self::assertStringContainsString('.sf-toolbar-toggle-button', $script);
+        self::assertMatchesRegularExpression('/\.showcase-js \.showcase-footer \{[^}]*bottom: var\(--showcase-bottom-offset, 0px\)/', $style);
+        self::assertMatchesRegularExpression('/\.showcase-preview-with-try \.showcase-preview-main \{[^}]*position: sticky;[^}]*top: 1rem;/', $style);
+    }
+
     public function testComponentWithNoStatusIsListedAndShownWithoutBadge(): void
     {
         $crawler = $this->get('/_showcase/');

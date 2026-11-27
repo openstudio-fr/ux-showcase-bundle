@@ -84,6 +84,15 @@ ux_showcase:
 its backgrounds, the last declared configuration, usually the application's, is the list that stays (the application can
 remove an entry of the theme).
 
+To offer no background at all (neither the header nor the bar at the bottom of the page then shows the choice, and a
+`background` in an address is ignored), declare an empty list, for instance in a theme that prepends its configuration
+and in an application that wants none; an absent key keeps the default backgrounds:
+
+```yaml
+ux_showcase:
+    backgrounds: {}
+```
+
 ### Access
 
 The showcase is a developer tool: it answers only when `kernel.debug` is on. Anywhere else, and for every route of the

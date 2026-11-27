@@ -27,15 +27,17 @@
                 </a>
             {% endfor %}
         </div>
-        <div role="group" aria-labelledby="controls-background">
-            <span id="controls-background" class="showcase-controls-label">{{ 'controls.background'|trans({}, 'UxShowcaseBundle') }}</span>
-            <a class="showcase-choice" href="{{ path(self_route, self_parameters|merge({viewport: state.viewport})) }}" data-background=""{% if state.background is null %} aria-current="true"{% endif %}>{{ 'controls.default'|trans({}, 'UxShowcaseBundle') }}</a>
-            {% for key, background in configuration.backgrounds %}
-                <a class="showcase-choice" href="{{ path(self_route, self_parameters|merge({viewport: state.viewport, background: key})) }}" data-background="{{ key }}"{% if key == state.background %} aria-current="true"{% endif %}>
-                    <span class="showcase-swatch" style="background-color: {{ background.color }}"></span>{{ key|capitalize }}
-                </a>
-            {% endfor %}
-        </div>
+        {% if configuration.backgrounds %}
+            <div role="group" aria-labelledby="controls-background">
+                <span id="controls-background" class="showcase-controls-label">{{ 'controls.background'|trans({}, 'UxShowcaseBundle') }}</span>
+                <a class="showcase-choice" href="{{ path(self_route, self_parameters|merge({viewport: state.viewport})) }}" data-background=""{% if state.background is null %} aria-current="true"{% endif %}>{{ 'controls.default'|trans({}, 'UxShowcaseBundle') }}</a>
+                {% for key, background in configuration.backgrounds %}
+                    <a class="showcase-choice" href="{{ path(self_route, self_parameters|merge({viewport: state.viewport, background: key})) }}" data-background="{{ key }}"{% if key == state.background %} aria-current="true"{% endif %}>
+                        <span class="showcase-swatch" style="background-color: {{ background.color }}"></span>{{ key|capitalize }}
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
     </div>
 {% endblock %}
 
@@ -174,6 +176,7 @@
                 {% for key, width in configuration.viewports %}<option value="{{ key }}" data-width="{{ width }}">{{ key|capitalize }}{% if width %} {{ width }}px{% endif %}</option>{% endfor %}
             </select>
         </div>
+        {% if background_names %}
         <div class="showcase-footer-choice">
             <label for="footer-background">{{ 'controls.background'|trans({}, 'UxShowcaseBundle') }}</label>
             <select id="footer-background" data-override="background">
@@ -182,6 +185,7 @@
                 {% for key in background_names %}<option value="{{ key }}">{{ key|capitalize }}</option>{% endfor %}
             </select>
         </div>
+        {% endif %}
         <button type="button" class="showcase-button showcase-footer-reset" data-override-reset hidden>{{ 'footer.reset'|trans({}, 'UxShowcaseBundle') }}</button>
         <div class="showcase-footer-panels">
             <button type="button" class="showcase-button" data-panel-toggle="code" aria-expanded="false" aria-controls="showcase-panel">{{ 'tabs.code'|trans({}, 'UxShowcaseBundle') }}</button>
