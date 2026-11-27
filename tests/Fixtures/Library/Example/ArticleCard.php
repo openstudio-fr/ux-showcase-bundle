@@ -16,7 +16,7 @@ namespace OpenStudio\UxShowcaseBundle\Tests\Fixtures\Library\Example;
 use OpenStudio\UxShowcaseBundle\Example\Attribute\AsShowcaseExample;
 use OpenStudio\UxShowcaseBundle\Example\FixtureLoader;
 
-#[AsShowcaseExample(component: 'Demo:Layout:Card', slug: 'article', title: 'Article from a fixture')]
+#[AsShowcaseExample(component: 'Demo:Layout:Card', slug: 'article', title: 'Article from a fixture', bodyClass: 'article-page', height: 320, needsData: true)]
 final readonly class ArticleCard
 {
     public function __construct(private FixtureLoader $fixtures)

@@ -13,7 +13,12 @@
                             <li>
                                 <a href="{{ path('ux_showcase_component', {library: library.name, component: component.name}) }}">{{ component.label }}</a>
                                 <code class="showcase-name">{{ component.name }}</code>
-                                <span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
+                                {% if component.status %}
+                                    <span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>
+                                {% endif %}
+                                {% if entry.without_example[component.name] is defined %}
+                                    <span class="showcase-badge showcase-badge-no-example">{{ 'index.no_example'|trans({}, 'UxShowcaseBundle') }}</span>
+                                {% endif %}
                             </li>
                         {% endfor %}
                         {% for page in group.docPages %}

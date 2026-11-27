@@ -25,14 +25,15 @@ final readonly class ComponentReference
     public string $label;
 
     /**
-     * @param string      $name  TwigComponent name, `:` separated (`Form:Input`); used as is in URLs, where `:` is legal
-     * @param string      $group group of the library it is listed under
-     * @param string|null $label defaults to the last segment of the name
+     * @param string               $name   TwigComponent name, `:` separated (`Form:Input`); used as is in URLs, where `:` is legal
+     * @param string               $group  group of the library it is listed under
+     * @param ComponentStatus|null $status null = the library claims no status: no badge is shown, the component is listed like a ready one
+     * @param string|null          $label  defaults to the last segment of the name
      */
     public function __construct(
         public string $name,
         public string $group = self::DEFAULT_GROUP,
-        public ComponentStatus $status = ComponentStatus::Ready,
+        public ?ComponentStatus $status = ComponentStatus::Ready,
         ?string $label = null,
         public PreviewOptions $preview = new PreviewOptions(),
     ) {

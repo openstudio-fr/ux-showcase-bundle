@@ -707,12 +707,31 @@ final readonly class TypedValueConverter
     private function refusalOf(\Throwable $exception, string $path): InvalidPostedValuesException
     {
         return match (true) {
-            $exception instanceof PartialDenormalizationException => new InvalidPostedValuesException(array_values(array_map(fn (NotNormalizableValueException $error): PostedValueError => new PostedValueError($error->getPath() ?? $path, $this->messageOf($error)), $exception->getErrors()))),
+            $exception instanceof PartialDenormalizationException => new InvalidPostedValuesException(array_values(array_map(fn (NotNormalizableValueException $error): PostedValueError => new PostedValueError($error->getPath() ?? $path, $this->messageOf($error)), self::denormalizationErrors($exception)))),
             $exception instanceof ExtraAttributesException => new InvalidPostedValuesException(array_values(array_map(static fn (mixed $field): PostedValueError => new PostedValueError(self::fieldPath($path, $field), 'Unknown field.'), $exception->getExtraAttributes()))),
             $exception instanceof MissingConstructorArgumentsException => new InvalidPostedValuesException(array_values(array_map(static fn (mixed $field): PostedValueError => new PostedValueError(self::fieldPath($path, $field), 'Required field.'), $exception->getMissingConstructorArguments()))),
             $exception instanceof NotNormalizableValueException => InvalidPostedValuesException::at($exception->getPath() ?? $path, $this->messageOf($exception)),
             default => InvalidPostedValuesException::at($path, $exception->getMessage()),
         };
+    }
+
+    /**
+     * Symfony 8.1 deprecates `getErrors()` for `getNotNormalizableValueErrors()`, which 7.4 does not have.
+     *
+     * @return list<NotNormalizableValueException>
+     */
+    private static function denormalizationErrors(PartialDenormalizationException $exception): array
+    {
+        $class = new \ReflectionClass($exception);
+        $read = $class->getMethod($class->hasMethod('getNotNormalizableValueErrors') ? 'getNotNormalizableValueErrors' : 'getErrors')->invoke($exception);
+        $errors = [];
+        foreach (\is_array($read) ? $read : [] as $error) {
+            if ($error instanceof NotNormalizableValueException) {
+                $errors[] = $error;
+            }
+        }
+
+        return $errors;
     }
 
     /**

@@ -14,6 +14,10 @@ declare(strict_types=1);
 namespace OpenStudio\UxShowcaseBundle\Tests\Functional;
 
 use OpenStudio\UxShowcaseBundle\Tests\Fixtures\Library\Configuration;
+use OpenStudio\UxShowcaseBundle\Tests\Fixtures\Preview\HostRequest;
+use OpenStudio\UxShowcaseBundle\Tests\Fixtures\Preview\HostRequestFactory;
+use OpenStudio\UxShowcaseBundle\Tests\Fixtures\Preview\HostSession;
+use OpenStudio\UxShowcaseBundle\Tests\Fixtures\Preview\OtherHostRequestFactory;
 use OpenStudio\UxShowcaseBundle\Tests\Fixtures\TestKernel;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -43,8 +47,17 @@ final class CheckCommandTest extends TestCase
         [$status, $display] = $this->check(['--library' => ['demo', 'props', 'other']]);
 
         self::assertSame(0, $status, $display);
-        self::assertMatchesRegularExpression('/^Checked \d+, passed \d+, failed 0, skipped 0\.$/m', $display);
+        self::assertMatchesRegularExpression('/^Checked \d+, passed \d+, failed 0, skipped 1\.$/m', $display);
+        self::assertStringContainsString('WARN  demo / Demo:Layout:Card / article skipped, needs data: use --with-data to render it', $display);
         self::assertStringNotContainsString('FAIL', $display);
+    }
+
+    public function testAPhpExampleThatNeedsDataIsRenderedWithData(): void
+    {
+        [$status, $display] = $this->check(['--library' => ['demo'], '--with-data' => true]);
+
+        self::assertSame(0, $status, $display);
+        self::assertMatchesRegularExpression('/^Checked \d+, passed \d+, failed 0, skipped 0\.$/m', $display);
     }
 
     public function testEveryBrokenExampleIsListedWithItsNameAndTheExitCodeIsOne(): void
@@ -174,6 +187,47 @@ final class CheckCommandTest extends TestCase
         self::assertFileDoesNotExist('/tmp/never-written.xml');
     }
 
+    public function testTheRequestsOfTheCheckComeFromTheFactoryOfTheApplication(): void
+    {
+        HostRequestFactory::reset();
+
+        [$status, $display] = $this->check(['--library' => ['strict']], factories: [HostRequestFactory::class]);
+
+        self::assertSame(0, $status, $display);
+        $created = HostRequestFactory::$created;
+        self::assertCount(3, $created, 'the main request, then one request per rendered example');
+        self::assertSame('/', $created[0]->getRequestUri());
+        self::assertStringStartsWith('/_showcase/strict/', $created[1]->getRequestUri());
+        self::assertStringStartsWith('/_showcase/strict/', $created[2]->getRequestUri());
+        foreach ($created as $request) {
+            self::assertInstanceOf(HostRequest::class, $request);
+            self::assertInstanceOf(HostSession::class, $request->getSession());
+            self::assertSame($created[0]->getSession(), $request->getSession(), 'a preview takes the session of the main request');
+        }
+    }
+
+    public function testMoreThanOneRequestFactoryFailsAndNamesThem(): void
+    {
+        [$status, $display] = $this->check(['--library' => ['strict']], factories: [HostRequestFactory::class, OtherHostRequestFactory::class]);
+
+        self::assertSame(1, $status);
+        self::assertStringContainsString(HostRequestFactory::class, $display);
+        self::assertStringContainsString(OtherHostRequestFactory::class, $display);
+        self::assertStringNotContainsString('Checked', $display);
+    }
+
+    public function testWithoutAFactoryThePlainRequestAndSessionAreUsed(): void
+    {
+        HostRequestFactory::reset();
+
+        [$status, $display] = $this->check(['--library' => ['data'], '--with-data' => true]);
+
+        self::assertSame(1, $status);
+        // Unchanged: the session is simulated (the example that reads it at mount fails on its own content, not for lack of one).
+        self::assertStringContainsString('Checked 3, passed 1, failed 2, skipped 0.', $display);
+        self::assertSame([], HostRequestFactory::$created);
+    }
+
     public function testTheAccessBypassIsNotReachableFromTheOutside(): void
     {
         $client = $this->client();
@@ -210,30 +264,37 @@ final class CheckCommandTest extends TestCase
 
     /**
      * @param array<string, mixed> $input
+     * @param list<class-string>   $factories
      *
      * @return array{int, string}
      */
-    private function check(array $input, bool $verbose = false): array
+    private function check(array $input, bool $verbose = false, array $factories = []): array
     {
-        $tester = $this->tester();
+        $tester = $this->tester($factories);
         $tester->execute($input, ['verbosity' => $verbose ? OutputInterface::VERBOSITY_VERBOSE : OutputInterface::VERBOSITY_NORMAL]);
 
         return [$tester->getStatusCode(), $tester->getDisplay()];
     }
 
-    private function tester(): CommandTester
+    /**
+     * @param list<class-string> $factories
+     */
+    private function tester(array $factories = []): CommandTester
     {
         $this->kernel?->shutdown();
-        $this->kernel = $this->kernel();
+        $this->kernel = $this->kernel($factories);
         $application = new Application($this->kernel);
 
         return new CommandTester($application->find('ux-showcase:check'));
     }
 
-    private function kernel(): TestKernel
+    /**
+     * @param list<class-string> $factories
+     */
+    private function kernel(array $factories = []): TestKernel
     {
         // Outside debug: the access check refuses everyone, and Twig does not enable strict variables on its own.
-        return new TestKernel(false, Configuration::check(), withLibrary: true);
+        return new TestKernel(false, Configuration::check(), withLibrary: true, checkRequestFactories: $factories);
     }
 
     private function client(): KernelBrowser

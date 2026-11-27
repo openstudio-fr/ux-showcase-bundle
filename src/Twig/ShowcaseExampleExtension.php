@@ -16,7 +16,8 @@ namespace OpenStudio\UxShowcaseBundle\Twig;
 use Twig\Extension\AbstractExtension;
 
 /**
- * Registered on the private environment that reads example files, never on the application environment.
+ * Registers the showcase_example / showcase_free tags. The private environment that reads example files and the
+ * application one both use it: the application parses an example file (`lint:twig`) and renders nothing for the tags.
  *
  * @internal
  */

@@ -15,6 +15,7 @@ namespace OpenStudio\UxShowcaseBundle\Tests\Functional;
 
 use OpenStudio\UxShowcaseBundle\Exception\DuplicateExampleException;
 use OpenStudio\UxShowcaseBundle\Exception\UnknownComponentException;
+use OpenStudio\UxShowcaseBundle\Library\ComponentReference;
 use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use OpenStudio\UxShowcaseBundle\Tests\Fixtures\Library\Configuration;
@@ -82,6 +83,16 @@ final class LibraryRegistryTest extends TestCase
         self::assertSame(ComponentStatus::Waiting, $registry->component('other', 'Other:Note')?->status);
     }
 
+    public function testComponentWithNoStatusIsVisibleAndDefaultStaysReady(): void
+    {
+        $registry = $this->registry();
+
+        self::assertNull($registry->component('other', 'Other:Plain')?->status);
+        self::assertContains('Other:Plain', array_map(static fn ($reference): string => $reference->name, $registry->components('other')));
+        self::assertSame(ComponentStatus::Ready, (new ComponentReference('X:Y'))->status);
+        self::assertNull($registry->component('demo', 'Demo:Legacy:Old'));
+    }
+
     public function testExamplesOfEachSourceAreListedInDeclarationOrder(): void
     {
         $registry = $this->registry();
@@ -101,6 +112,11 @@ final class LibraryRegistryTest extends TestCase
         $items = $card[1]->props['items'];
         self::assertIsArray($items);
         self::assertSame(['label' => 'Book', 'meta' => ['price' => 12.5]], $items[0]);
+        self::assertSame('article-page', $card[1]->preview->bodyClass);
+        self::assertSame(320, $card[1]->preview->height);
+        self::assertTrue($card[1]->preview->needsData);
+        self::assertNull($card[1]->preview->background);
+        self::assertNull($card[1]->preview->wrapper);
 
         self::assertSame(['hello'], array_map(static fn ($example): string => $example->slug, $registry->examples('other', 'Other:Note')));
     }

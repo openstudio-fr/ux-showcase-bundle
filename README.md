@@ -4,7 +4,7 @@ A showcase of Twig components, served by the application itself: browse the comp
 examples at several widths and on several backgrounds, read their props and their code, and try them with other
 values. It replaces Storybook in Symfony projects, with no Node server.
 
-Status: in development, not released. The first version is tracked in issue #1.
+Status: 0.x. The public API may still change between minor versions.
 
 ## What the first version does
 
@@ -78,6 +78,9 @@ ux_showcase:
     libraries: {}                # see "Libraries"
 ```
 
+`viewports` is replaced as a whole, not merged by key: when a bundle (a theme) prepends its widths, the last declared
+configuration, usually the application's, is the list that stays.
+
 ### Access
 
 The showcase is a developer tool: it answers only when `kernel.debug` is on. Anywhere else, and for every route of the
@@ -142,7 +145,7 @@ Flexy theme, with the examples the theme and its modules already provide, will c
 
 The public API is what carries an `@api` tag: `ComponentLibraryInterface`, `ComponentReference`, `ComponentStatus`,
 `ComponentGroup`, `ShowcaseRegistry`, `Example`, `PreviewOptions`, `ResolvedPreview`, `ExampleProviderInterface`,
-`AsShowcaseExample`, `FixtureLoader`, `ExampleCodeGenerator`, `ExampleRenderer`, `PreviewUrlGeneratorInterface`, `PostedValuesNormalizerInterface`, `PostedValuesContext`, `PostedValueError`, `PreviewPrefill`. Everything else is `@internal`. The
+`AsShowcaseExample`, `FixtureLoader`, `ExampleCodeGenerator`, `ExampleRenderer`, `PreviewUrlGeneratorInterface`, `PostedValuesNormalizerInterface`, `PostedValuesContext`, `PostedValueError`, `PreviewPrefill`, `ComponentCatalog` (`names()` and `exists()`), `TwigExampleFileProvider`. Everything else is `@internal`. The
 package is 0.x: a minor version may break the API.
 
 ### A library in configuration
@@ -167,14 +170,100 @@ ux_showcase:
                 'App:Legacy:Old': hidden
 ```
 
+A library written in PHP can pass `status: null` to a `ComponentReference` when it claims no status: no badge is shown and the component is listed like a ready one (`Hidden` is the only status that hides).
+
 Components are discovered from TwigComponent, anonymous ones (templates under a `components/` directory of a Twig path)
 and class ones. The name is the TwigComponent name, `:` separated; its group is the name below the prefix, without the
 last segment (`App:Form:Input` is in `Form`, `App:Button` in `General`). A component name is used as is in URLs, where
 `:` is legal; library names and example slugs match `[a-z0-9]+(-[a-z0-9]+)*`.
 
-A library that needs PHP implements `OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface`: autoconfigured
-(tag `ux_showcase.library`). It lists its `ComponentReference` (name, group, `ComponentStatus` `Ready`, `Waiting` or
-`Hidden`, label), its group order, its example providers, its wrapper and bare templates, its preview options.
+### A library in PHP
+
+A library that needs PHP implements `OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface`. It is autoconfigured
+(tag `ux_showcase.library`): no service definition is needed beyond the usual autowiring of your `src/`. It lists its
+`ComponentReference` (name, group, `ComponentStatus` `Ready`, `Waiting` or `Hidden`, label), its group order, its example
+providers, its wrapper and bare templates and its preview options.
+
+`ComponentCatalog` lists the components TwigComponent knows, and `TwigExampleFileProvider` reads a directory of
+`.showcase.twig` files (see "Twig example files"). A library can reuse both and decide the rest: the groups, the labels,
+which components it shows.
+
+```php
+use OpenStudio\UxShowcaseBundle\Example\PreviewOptions;
+use OpenStudio\UxShowcaseBundle\Example\TwigExampleFileProvider;
+use OpenStudio\UxShowcaseBundle\Library\ComponentCatalog;
+use OpenStudio\UxShowcaseBundle\Library\ComponentLibraryInterface;
+use OpenStudio\UxShowcaseBundle\Library\ComponentReference;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+
+final readonly class AppLibrary implements ComponentLibraryInterface
+{
+    public function __construct(
+        private ComponentCatalog $catalog,
+        #[Autowire('%kernel.project_dir%/showcase/examples')]
+        private string $examplesDirectory,
+    ) {
+    }
+
+    public function getName(): string
+    {
+        return 'app';
+    }
+
+    public function getLabel(): string
+    {
+        return 'Application';
+    }
+
+    public function getComponents(): array
+    {
+        $references = [];
+        foreach ($this->catalog->names() as $name) {
+            if (!str_starts_with($name, 'App:')) {
+                continue;
+            }
+
+            $segments = explode(':', substr($name, 4));
+            // App:Button:Base is labelled "Button"
+            $label = 'Base' === end($segments) && \count($segments) > 1 ? $segments[0] : null;
+            $group = str_contains($name, ':Form:') ? 'Forms' : 'General';
+
+            $references[] = new ComponentReference($name, $group, label: $label);
+        }
+
+        return $references;
+    }
+
+    public function getGroups(): array
+    {
+        return ['General', 'Forms'];
+    }
+
+    public function getExampleProviders(): iterable
+    {
+        yield new TwigExampleFileProvider($this->examplesDirectory);
+    }
+
+    public function getWrapperTemplate(): ?string
+    {
+        return null;
+    }
+
+    public function getBareTemplate(): ?string
+    {
+        return null;
+    }
+
+    public function getPreviewOptions(): PreviewOptions
+    {
+        return new PreviewOptions();
+    }
+}
+```
+
+Without a component prefix, `TwigExampleFileProvider` expects the full component name as a path: `App/Form/Input.showcase.twig`
+holds the examples of `App:Form:Input`. Pass the prefix as second argument to start the paths below it, as the
+`examples` option does.
 
 ### Twig example files
 
@@ -213,6 +302,10 @@ A free example is a Twig snippet with no props, shown without a form (a whole pa
 {% end_showcase_free %}
 ```
 
+The tags are known to the Twig environment of the application, so `bin/console lint:twig` checks example files stored
+next to your components: a syntax error in a tag is reported. Outside the showcase they render nothing, and their body
+is never evaluated.
+
 A documentation page (colours, typography, icons) is a free example tied to no component: a file in
 `_docs/<Group>/<name>.showcase.twig` holds `showcase_free` tags, listed under the group `<Group>`.
 
@@ -238,6 +331,13 @@ final readonly class ArticleCard
         return $this->fixtures->load('cards/article.json'); // relative to ux_showcase.fixtures_directory
     }
 }
+```
+
+The attribute takes the preview options of a Twig example as named arguments: `background`, `bodyClass`, `wrapper`,
+`height`, `needsData`. Left out, an option is not decided here and the next level (component, library, global) answers.
+
+```php
+#[AsShowcaseExample(component: 'Demo:Layout:Card', slug: 'article', bodyClass: 'bg-light p-4', height: 320, needsData: true)]
 ```
 
 An example of a component that no library lists, a duplicate slug, a prop that is not plain data: each fails when the
@@ -272,7 +372,7 @@ Every route sits under the prefix you imported them with, behind the access chec
 
 | Name | Path | Screen |
 |---|---|---|
-| `ux_showcase_index` | `/` | libraries, then groups: components with a status badge (`ready`, `waiting`; `hidden` ones are absent) and documentation pages |
+| `ux_showcase_index` | `/` | libraries, then groups: components with a status badge (`ready`, `waiting`; `hidden` ones are absent), a "No example" badge when a component has none, and documentation pages |
 | `ux_showcase_component` | `/{library}/{component}` | the examples of a component, each with the tabs Preview, Code and Props, and the Try form beside the frame |
 | `ux_showcase_doc` | `/{library}/_docs/{slug}` | a documentation page: Preview and Code, no Props |
 | `ux_showcase_preview` | `/{library}/{component}/{slug}/preview` | the bare page of one example, loaded by its frame |
@@ -600,6 +700,27 @@ showcase:
 Run it in the environment of the application (its `APP_ENV`, its database when `--with-data` is used): the command
 renders with the real container.
 
+### Applications with their own request
+
+The command renders with a plain `Request` and an in-memory session. An application whose pages need its own request or
+session class (a framework that type-hints its own `Request`, a session that carries the language) provides a factory:
+a service that implements `CheckRequestFactoryInterface` is picked up by autoconfiguration. It is called once for the
+main request on `/`, then once per preview path; a preview takes the session of the main request. Two factories are an
+error, the command names them.
+
+```php
+final class AppCheckRequestFactory implements CheckRequestFactoryInterface
+{
+    public function createRequest(string $uri): Request
+    {
+        $request = AppRequest::create($uri);
+        $request->setSession(new AppSession(new MockArraySessionStorage()));
+
+        return $request;
+    }
+}
+```
+
 ### Examples that need data
 
 An example that reads the database by a fixed id, the session at mount, or calls an API when a prop is missing cannot
@@ -610,6 +731,7 @@ render in a CI without those: mark it `needs_data` and the command skips it with
   for all; the first level that sets it wins, like the other preview options (an example can set `false`);
 - for some components of a library whose example files you do not own (a vendor kit): list them in the library,
   `ux_showcase.libraries.<name>.needs_data: ['Flexy:Cart', 'Flexy:Form:Address']`;
+- on a PHP example: `#[AsShowcaseExample(component: '…', slug: '…', needsData: true)]`;
 - in PHP: `new PreviewOptions(needsData: true)` on an `Example`, or `ComponentReference::$preview` for a component of
   a library that implements `ComponentLibraryInterface`; an adapter that feeds examples through an
   `ExampleProviderInterface` sets it on the examples it yields.
