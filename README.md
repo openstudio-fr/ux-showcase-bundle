@@ -57,6 +57,8 @@ Configuration (`config/packages/ux_showcase.yaml`), every key is optional:
 ux_showcase:
     title: Components            # title of the screen
     logo: /build/logo.svg        # asset path or URL, none by default
+    theme:
+        primary_color: ~         # CSS colour of the links, the active menu entry and the accents (hex, name, rgb() or hsl()); the default blue when empty
     viewports:                   # preview widths in pixels, null for a responsive preview; replaces the default list
         responsive: ~
         mobile: 375
@@ -386,6 +388,8 @@ The wrapper is on unless a level turns it off.
 ## Screens
 
 Every route sits under the prefix you imported them with, behind the access check (a 404 outside debug).
+
+Every screen but the bare page of a preview has a side menu listing the libraries, their groups, the components with their status and the documentation pages, with the current entry marked; on a narrow screen it folds behind a button.
 
 | Name | Path | Screen |
 |---|---|---|
