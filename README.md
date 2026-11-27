@@ -60,6 +60,7 @@ ux_showcase:
     theme:
         primary_color: ~         # CSS colour of the links, the active menu entry and the accents (hex, name, rgb() or hsl(), a % written %%); the default blue when empty
         page_background: ~       # CSS colour of the page behind the content (same forms); the default light grey when empty
+        block_background: ~      # CSS colour of the blocks the previews, the try form and the home lists sit in (same forms); white when empty
     viewports:                   # preview widths in pixels, null for a responsive preview; replaces the default list
         responsive: ~
         mobile: 375

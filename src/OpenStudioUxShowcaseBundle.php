@@ -64,7 +64,7 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
      * @param array{
      *     title: string,
      *     logo: string|null,
-     *     theme: array{primary_color: string|null, page_background: string|null},
+     *     theme: array{primary_color: string|null, page_background: string|null, block_background: string|null},
      *     viewports: array<string, int|null>,
      *     backgrounds: array<string, array{color: string, html_attributes: array<string, string|int|float|bool>}>,
      *     fixtures_directory: string|null,
@@ -83,7 +83,7 @@ final class OpenStudioUxShowcaseBundle extends AbstractBundle
             $backgrounds[$name] = inline_service(Background::class)->args([$name, $background['color'], $background['html_attributes']]);
         }
         $services->set(ShowcaseConfiguration::class)
-            ->args([$config['title'], $config['logo'], $config['viewports'], $backgrounds, inline_service(PreviewOptions::class)->args(array_values($config['preview'])), $config['theme']['primary_color'], $config['theme']['page_background']]);
+            ->args([$config['title'], $config['logo'], $config['viewports'], $backgrounds, inline_service(PreviewOptions::class)->args(array_values($config['preview'])), $config['theme']['primary_color'], $config['theme']['page_background'], $config['theme']['block_background']]);
         $services->set(FixtureLoader::class)->args([$config['fixtures_directory']]);
 
         $builder->registerForAutoconfiguration(ComponentLibraryInterface::class)->addTag('ux_showcase.library');
