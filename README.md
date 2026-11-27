@@ -94,11 +94,69 @@ bundle, a refused request gets a 404 (never a 403, so its existence is not adver
   than in an `access_control` rule: a host without a Symfony firewall on the path, as Thelia has on `/admin`, would
   protect nothing.
 
-Thelia: see the Thelia section (coming). The access service is the place to open the showcase to back-office
-administrators.
+On Thelia, see [Thelia](#thelia): the access service is the place to open the showcase to back-office administrators.
 
 The screen is in English; a French translation is provided in the `UxShowcaseBundle` translation domain. Its styles
 and scripts are served with the page, with no dependency on the asset pipeline of the application.
+
+## Thelia
+
+Registration by the Thelia core is proposed in [thelia/thelia#4381](https://github.com/thelia/thelia/pull/4381), for
+the 3.5 line, and is not in a release yet. With it, a Thelia 3 shop only installs the package:
+
+- the core registers the bundle and imports its routes under `/_showcase`: nothing goes in `config/bundles.php` or
+  `config/routes/`;
+- the core provides `Thelia\Core\Security\Showcase\AdministratorShowcaseAccess`, which opens the showcase to signed-in
+  back-office administrators, in addition to debug. The back office of Thelia has no Symfony firewall, so
+  `access.role` cannot do it. Name the service in `config/packages/ux_showcase.yaml`:
+
+  ```yaml
+  ux_showcase:
+      access:
+          service: Thelia\Core\Security\Showcase\AdministratorShowcaseAccess
+  ```
+
+On a Thelia 3 site without that registration, built from `thelia/thelia-project`, install the package as above with
+two differences:
+
+- the kernel of the project imports the YAML files of `config/routes/` only, so the routes go in
+  `config/routes/ux_showcase.yaml`. Keep `trailing_slash_on_root: false`: with a slash on the prefixed root, the index
+  redirects to itself in a loop.
+
+  ```yaml
+  ux_showcase:
+      resource: '@OpenStudioUxShowcaseBundle/config/routes.php'
+      prefix: /_showcase
+      trailing_slash_on_root: false
+  ```
+
+- declare your own access service, the same as the one of the core, and name it in `access.service`. It replaces the
+  debug rule, hence the `kernel.debug` argument:
+
+  ```php
+  use OpenStudio\UxShowcaseBundle\Access\ShowcaseAccessInterface;
+  use Symfony\Component\DependencyInjection\Attribute\Autowire;
+  use Symfony\Component\HttpFoundation\Request;
+  use Thelia\Core\Security\SecurityContext;
+
+  final readonly class AdministratorAccess implements ShowcaseAccessInterface
+  {
+      public function __construct(
+          private SecurityContext $securityContext,
+          #[Autowire('%kernel.debug%')] private bool $debug,
+      ) {
+      }
+
+      public function isGranted(Request $request): bool
+      {
+          return $this->debug || $this->securityContext->hasAdminUser();
+      }
+  }
+  ```
+
+The Flexy theme brings its own library when the package is installed: its components, grouped by folder, with the
+examples the theme and its modules provide. It is proposed in
+[thelia-templates/flexy#366](https://github.com/thelia-templates/flexy/pull/366).
 
 ## Libraries and examples
 
