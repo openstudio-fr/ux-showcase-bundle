@@ -54,14 +54,71 @@ final class ScreenTest extends TestCase
         self::assertStringNotContainsString('Demo:Legacy:Old', (string) $this->client()->getResponse()->getContent());
     }
 
+    public function testTheIndexShowsTheSideMenuAndKeepsItsFullListInTheMain(): void
+    {
+        $crawler = $this->get('/_showcase/');
+
+        $menu = $crawler->filterXPath('//nav[@id="showcase-menu"]');
+        self::assertCount(1, $menu);
+        self::assertSame(['Demo kit', 'Other'], $this->texts($menu, '//h2'));
+        self::assertSame('/_showcase/demo/Demo:Form:Input', $menu->filterXPath('//a[starts-with(normalize-space(), "Input")]')->attr('href'));
+        self::assertSame('/_showcase/demo/_docs/colours', $menu->filterXPath('//a[normalize-space()="Colours"]')->attr('href'));
+        self::assertSame(['Waiting'], $this->texts($menu, '//li[a[starts-with(normalize-space(), "Chart")]]//span[contains(@class, "showcase-badge")]'));
+        self::assertCount(0, $menu->filterXPath('//li[a[normalize-space()="Plain"]]//span'));
+        self::assertSame(['page'], $this->attributes($menu, '//a[@aria-current]', 'aria-current'));
+        self::assertSame('/_showcase/', $menu->filterXPath('//a[@aria-current]')->attr('href'));
+        self::assertCount(1, $crawler->filterXPath('//main//section[@aria-labelledby="library-demo"]'));
+    }
+
+    public function testTheComponentPageMarksItsEntryInTheSideMenu(): void
+    {
+        $crawler = $this->get('/_showcase/demo/Demo:Form:Input');
+
+        $current = $crawler->filterXPath('//nav[@id="showcase-menu"]//a[@aria-current="page"]');
+        self::assertCount(1, $current);
+        self::assertSame('/_showcase/demo/Demo:Form:Input', $current->attr('href'));
+    }
+
+    public function testTheDocumentationPageMarksItsEntryInTheSideMenu(): void
+    {
+        $crawler = $this->get('/_showcase/demo/_docs/colours');
+
+        $current = $crawler->filterXPath('//nav[@id="showcase-menu"]//a[@aria-current="page"]');
+        self::assertCount(1, $current);
+        self::assertSame('/_showcase/demo/_docs/colours', $current->attr('href'));
+    }
+
+    public function testThePreviewPageHasNoSideMenu(): void
+    {
+        $this->get('/_showcase/demo/Demo:Button/primary/preview');
+
+        self::assertStringNotContainsString('showcase-menu', (string) $this->client()->getResponse()->getContent());
+    }
+
+    public function testThePrimaryColourIsRenderedWhenConfiguredAndAbsentOtherwise(): void
+    {
+        $this->get('/_showcase/');
+        self::assertStringNotContainsString('--showcase-primary', (string) $this->client()->getResponse()->getContent());
+
+        $this->tearDown();
+        $this->kernel = Configuration::kernel(configuration: Configuration::demo() + ['theme' => ['primary_color' => '#7b2cbf']]);
+        $this->kernel->boot();
+        $client = $this->kernel->getContainer()->get('test.client');
+        self::assertInstanceOf(KernelBrowser::class, $client);
+        $this->client = $client;
+
+        $body = $this->get('/_showcase/demo/Demo:Button')->filterXPath('//body');
+        self::assertSame('--showcase-primary: #7b2cbf', $body->attr('style'));
+    }
+
     public function testComponentWithNoStatusIsListedAndShownWithoutBadge(): void
     {
         $crawler = $this->get('/_showcase/');
 
-        $plain = $crawler->filterXPath('//li[a[normalize-space()="Plain"]]');
+        $plain = $crawler->filterXPath('//main//li[a[normalize-space()="Plain"]]');
         self::assertCount(1, $plain);
         self::assertCount(0, $plain->filterXPath('//span[contains(@class, "showcase-badge")]'));
-        $note = $crawler->filterXPath('//li[a[normalize-space()="Note"]]');
+        $note = $crawler->filterXPath('//main//li[a[normalize-space()="Note"]]');
         self::assertSame(['Waiting'], $this->texts($note, '//span[contains(@class, "showcase-badge")]'));
 
         $page = $this->get('/_showcase/other/Other:Plain');
@@ -93,7 +150,7 @@ final class ScreenTest extends TestCase
     {
         $crawler = $this->get('/_showcase/');
 
-        $foundations = $crawler->filterXPath('//section[h3="Foundations"]');
+        $foundations = $crawler->filterXPath('//main//section[h3="Foundations"]');
         $link = $foundations->filterXPath('//a');
         self::assertSame('Colours', $link->text());
         self::assertSame('/_showcase/demo/_docs/colours', $link->attr('href'));
@@ -222,7 +279,7 @@ final class ScreenTest extends TestCase
         $crawler = $this->get('/_showcase/demo/_docs/colours');
 
         self::assertSame(200, $this->client()->getResponse()->getStatusCode());
-        self::assertSame('Colours', $crawler->filterXPath('//h2')->text());
+        self::assertSame('Colours', $crawler->filterXPath('//main//h2')->text());
         self::assertSame(['Preview', 'Code'], $this->texts($crawler, '//*[@role="tab"]'));
         self::assertStringContainsString('<li style="color: #0d6efd">Primary</li>', $crawler->filterXPath('//pre')->text());
         self::assertSame('/_showcase/demo/_docs/colours/preview', $crawler->filterXPath('//iframe')->attr('src'));
