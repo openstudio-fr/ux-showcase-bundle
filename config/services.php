@@ -43,6 +43,7 @@ use OpenStudio\UxShowcaseBundle\Screen\ActionResolver;
 use OpenStudio\UxShowcaseBundle\Screen\Assets;
 use OpenStudio\UxShowcaseBundle\Screen\BuiltinTryFieldType;
 use OpenStudio\UxShowcaseBundle\Screen\ExampleViewFactory;
+use OpenStudio\UxShowcaseBundle\Screen\LibraryListing;
 use OpenStudio\UxShowcaseBundle\Screen\TryFieldRegistry;
 use OpenStudio\UxShowcaseBundle\Screen\TryPanelFactory;
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
@@ -74,6 +75,7 @@ return static function (ContainerConfigurator $container): void {
         ->tag('kernel.event_listener', ['event' => 'kernel.controller', 'method' => 'onController'])
         ->tag('kernel.event_listener', ['event' => 'kernel.response', 'method' => 'onResponse']);
 
+    $services->set(LibraryListing::class)->autowire();
     $services->set(Assets::class)->args([service('router')]);
     $services->set(ShowcaseScreenExtension::class)->args([service(Assets::class)])->tag('twig.extension');
     // The tags of the example files, known to the application so that `lint:twig` parses them; they render nothing.

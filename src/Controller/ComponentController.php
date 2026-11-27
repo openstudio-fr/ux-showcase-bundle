@@ -19,6 +19,7 @@ use OpenStudio\UxShowcaseBundle\Props\ComponentDocumentation;
 use OpenStudio\UxShowcaseBundle\Screen\ActionContext;
 use OpenStudio\UxShowcaseBundle\Screen\ActionResolver;
 use OpenStudio\UxShowcaseBundle\Screen\ExampleViewFactory;
+use OpenStudio\UxShowcaseBundle\Screen\LibraryListing;
 use OpenStudio\UxShowcaseBundle\Screen\Requirements;
 use OpenStudio\UxShowcaseBundle\Screen\ScreenState;
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
@@ -38,6 +39,7 @@ final readonly class ComponentController
         private ComponentDocumentation $documentation,
         private ExampleViewFactory $views,
         private ActionResolver $actions,
+        private LibraryListing $listing,
     ) {
     }
 
@@ -70,6 +72,7 @@ final readonly class ComponentController
 
         return new Response($this->twig->render('@OpenStudioUxShowcase/component.html.twig', [
             'configuration' => $this->configuration,
+            'libraries' => $this->listing->libraries(),
             'library' => $showcaseLibrary,
             'component' => $reference,
             'documentation' => $documentation,

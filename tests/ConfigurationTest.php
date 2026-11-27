@@ -15,7 +15,9 @@ namespace OpenStudio\UxShowcaseBundle\Tests;
 
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
 use OpenStudio\UxShowcaseBundle\Tests\Fixtures\TestKernel;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 final class ConfigurationTest extends TestCase
@@ -26,6 +28,7 @@ final class ConfigurationTest extends TestCase
 
         self::assertSame('Components', $configuration->title);
         self::assertNull($configuration->logo);
+        self::assertNull($configuration->primaryColor);
         self::assertSame(['responsive' => null, 'mobile' => 375, 'tablet' => 768, 'desktop' => 1280], $configuration->viewports);
         self::assertSame(['light', 'white', 'dark'], array_keys($configuration->backgrounds));
     }
@@ -75,6 +78,49 @@ final class ConfigurationTest extends TestCase
         self::assertSame(['data-bs-theme' => 'dark'], $configuration->backgrounds['night']->htmlAttributes);
         self::assertSame('#212529', $configuration->backgrounds['night']->color);
         self::assertSame([], $configuration->backgrounds['bare']->htmlAttributes);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function safeColours(): iterable
+    {
+        yield 'hex' => ['#7b2cbf'];
+        yield 'short hex' => ['#fff'];
+        yield 'name' => ['rebeccapurple'];
+        yield 'rgb' => ['rgb(10, 20, 30)'];
+    }
+
+    #[DataProvider('safeColours')]
+    public function testThePrimaryColourAcceptsASafeCssColour(string $colour): void
+    {
+        self::assertSame($colour, $this->configuration(['theme' => ['primary_color' => $colour]])->primaryColor);
+    }
+
+    public function testAPercentageInThePrimaryColourIsWrittenAsAnEscapedPercentSign(): void
+    {
+        self::assertSame('hsla(120, 50%, 40%, 0.5)', $this->configuration(['theme' => ['primary_color' => 'hsla(120, 50%%, 40%%, 0.5)']])->primaryColor);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function unsafeColours(): iterable
+    {
+        yield 'attribute injection' => ['red" onload="alert(1)'];
+        yield 'declaration injection' => ['red; background: url(//evil.example/x)'];
+        yield 'url' => ['url(//evil.example/x)'];
+        yield 'tag' => ['<script>'];
+        yield 'bad hex' => ['#12'];
+        yield 'empty' => [''];
+    }
+
+    #[DataProvider('unsafeColours')]
+    public function testThePrimaryColourRefusesAnythingThatIsNotASafeCssColour(string $colour): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->configuration(['theme' => ['primary_color' => $colour]]);
     }
 
     public function testDefaultBackgroundsKeepTheirColoursAndOrder(): void

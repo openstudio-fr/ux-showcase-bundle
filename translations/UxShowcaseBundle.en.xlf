@@ -30,6 +30,10 @@
                 <source>nav.breadcrumb</source>
                 <target>Breadcrumb</target>
             </trans-unit>
+            <trans-unit id="nav.menu" resname="nav.menu">
+                <source>nav.menu</source>
+                <target>Components menu</target>
+            </trans-unit>
             <trans-unit id="nav.all" resname="nav.all">
                 <source>nav.all</source>
                 <target>All components</target>
