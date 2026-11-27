@@ -581,7 +581,26 @@
         });
     }
 
+    // Side menu: always shown on a wide screen, folded behind the button of the header on a narrow one.
+    function initMenu(menu) {
+        var button = document.querySelector('[data-ux-showcase-menu-toggle]');
+        if (!button) {
+            return;
+        }
+        button.addEventListener('click', function () {
+            var open = !menu.hasAttribute('data-open');
+            if (open) {
+                menu.setAttribute('data-open', '');
+            } else {
+                menu.removeAttribute('data-open');
+            }
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+    }
+
     function init() {
+        document.body.classList.add('showcase-js');
+        all(document, '[data-ux-showcase-menu]').forEach(initMenu);
         all(document, '[data-ux-showcase-tabs]').forEach(initTabs);
         all(document, '[data-ux-showcase-controls]').forEach(initControls);
         all(document, '[data-ux-showcase-try]').forEach(initTry);

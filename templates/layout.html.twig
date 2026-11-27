@@ -9,14 +9,18 @@
     <script src="{{ ux_showcase_asset('showcase.js') }}" defer></script>
     {% block head %}{% endblock %}
 </head>
-<body class="showcase">
+<body class="showcase"{% if configuration.primaryColor %} style="--showcase-primary: {{ configuration.primaryColor }}"{% endif %}>
     <header class="showcase-header">
         {% if configuration.logo %}<img src="{{ configuration.logo }}" alt="">{% endif %}
         <h1>{{ configuration.title }}</h1>
         {% block header %}{% endblock %}
+        <button type="button" class="showcase-menu-toggle" aria-expanded="false" aria-controls="showcase-menu" data-ux-showcase-menu-toggle>{{ 'nav.menu'|trans({}, 'UxShowcaseBundle') }}</button>
     </header>
-    <main class="showcase-main">
-        {% block body %}{% endblock %}
-    </main>
+    <div class="showcase-shell">
+        {% block sidebar %}{% include '@OpenStudioUxShowcase/_menu.html.twig' %}{% endblock %}
+        <main class="showcase-main">
+            {% block body %}{% endblock %}
+        </main>
+    </div>
 </body>
 </html>

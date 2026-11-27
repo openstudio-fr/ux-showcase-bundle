@@ -1,0 +1,35 @@
+{#
+    The side menu of the screens: libraries, groups, then components (with their status) and documentation pages.
+    `libraries` is the list the index shows; the entry of the page being shown is told by the route.
+#}
+{% set current_route = app.request.attributes.get('_route') %}
+{% set current_library = app.request.attributes.get('library') %}
+{% set current_component = app.request.attributes.get('component') %}
+{% set current_slug = app.request.attributes.get('slug') %}
+<nav class="showcase-menu" id="showcase-menu" aria-label="{{ 'nav.menu'|trans({}, 'UxShowcaseBundle') }}" data-ux-showcase-menu>
+    <a class="showcase-menu-home" href="{{ path('ux_showcase_index') }}"{% if current_route == 'ux_showcase_index' %} aria-current="page"{% endif %}>{{ 'nav.all'|trans({}, 'UxShowcaseBundle') }}</a>
+    {% for entry in libraries|default([]) %}
+        {% set library = entry.library %}
+        <section class="showcase-menu-library">
+            <h2>{{ library.label }}</h2>
+            {% for group in entry.groups %}
+                <h3>{{ group.name }}</h3>
+                <ul>
+                    {% for component in group.components %}
+                        <li>
+                            <a href="{{ path('ux_showcase_component', {library: library.name, component: component.name}) }}"{% if current_route == 'ux_showcase_component' and current_library == library.name and current_component == component.name %} aria-current="page"{% endif %}>
+                                {{ component.label }}
+                                {% if component.status %}<span class="showcase-badge showcase-badge-{{ component.status.value }}">{{ ('status.' ~ component.status.value)|trans({}, 'UxShowcaseBundle') }}</span>{% endif %}
+                            </a>
+                        </li>
+                    {% endfor %}
+                    {% for page in group.docPages %}
+                        <li>
+                            <a href="{{ path('ux_showcase_doc', {library: library.name, slug: page.slug}) }}"{% if current_route == 'ux_showcase_doc' and current_library == library.name and current_slug == page.slug %} aria-current="page"{% endif %}>{{ page.title }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endfor %}
+        </section>
+    {% endfor %}
+</nav>

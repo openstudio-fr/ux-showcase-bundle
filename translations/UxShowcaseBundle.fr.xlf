@@ -30,6 +30,10 @@
                 <source>nav.breadcrumb</source>
                 <target>Fil d'Ariane</target>
             </trans-unit>
+            <trans-unit id="nav.menu" resname="nav.menu">
+                <source>nav.menu</source>
+                <target>Menu des composants</target>
+            </trans-unit>
             <trans-unit id="nav.all" resname="nav.all">
                 <source>nav.all</source>
                 <target>Tous les composants</target>

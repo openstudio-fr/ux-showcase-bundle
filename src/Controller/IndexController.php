@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace OpenStudio\UxShowcaseBundle\Controller;
 
+use OpenStudio\UxShowcaseBundle\Screen\LibraryListing;
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
-use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Twig\Environment;
@@ -24,7 +24,7 @@ final readonly class IndexController
     public function __construct(
         private Environment $twig,
         private ShowcaseConfiguration $configuration,
-        private ShowcaseRegistry $registry,
+        private LibraryListing $listing,
     ) {
     }
 
@@ -32,23 +32,9 @@ final readonly class IndexController
     #[Route('/', name: 'ux_showcase_index', methods: ['GET'])]
     public function __invoke(): Response
     {
-        $libraries = [];
-        foreach ($this->registry->libraries() as $library) {
-            $groups = $this->registry->groups($library->getName());
-            $withoutExample = [];
-            foreach ($groups as $group) {
-                foreach ($group->components as $component) {
-                    if ([] === $this->registry->examples($library->getName(), $component->name)) {
-                        $withoutExample[$component->name] = true;
-                    }
-                }
-            }
-            $libraries[] = ['library' => $library, 'groups' => $groups, 'without_example' => $withoutExample];
-        }
-
         return new Response($this->twig->render('@OpenStudioUxShowcase/index.html.twig', [
             'configuration' => $this->configuration,
-            'libraries' => $libraries,
+            'libraries' => $this->listing->libraries(),
         ]));
     }
 }

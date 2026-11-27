@@ -16,6 +16,7 @@ namespace OpenStudio\UxShowcaseBundle\Controller;
 use OpenStudio\UxShowcaseBundle\Screen\ActionContext;
 use OpenStudio\UxShowcaseBundle\Screen\ActionResolver;
 use OpenStudio\UxShowcaseBundle\Screen\ExampleViewFactory;
+use OpenStudio\UxShowcaseBundle\Screen\LibraryListing;
 use OpenStudio\UxShowcaseBundle\Screen\Requirements;
 use OpenStudio\UxShowcaseBundle\Screen\ScreenState;
 use OpenStudio\UxShowcaseBundle\ShowcaseConfiguration;
@@ -37,6 +38,7 @@ final readonly class DocPageController
         private ShowcaseRegistry $registry,
         private ExampleViewFactory $views,
         private ActionResolver $actions,
+        private LibraryListing $listing,
     ) {
     }
 
@@ -55,6 +57,7 @@ final readonly class DocPageController
 
         return new Response($this->twig->render('@OpenStudioUxShowcase/component.html.twig', [
             'configuration' => $this->configuration,
+            'libraries' => $this->listing->libraries(),
             'library' => $showcaseLibrary,
             'component' => null,
             'documentation' => null,
