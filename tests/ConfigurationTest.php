@@ -82,6 +82,25 @@ final class ConfigurationTest extends TestCase
         self::assertSame(['app'], array_keys($configuration->backgrounds));
     }
 
+    public function testAnEmptyListOfBackgroundsStaysEmptyEvenAfterAThemeDeclaredSome(): void
+    {
+        self::assertSame([], $this->configuration(['backgrounds' => []])->backgrounds);
+        self::assertNotSame([], $this->configuration([])->backgrounds, 'an absent key keeps the default backgrounds');
+
+        $kernel = new TestKernel(true, [], extraConfigurations: [
+            ['backgrounds' => ['theme-dark' => '#212529']],
+            ['backgrounds' => []],
+        ]);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+        self::assertInstanceOf(ContainerInterface::class, $container);
+        $configuration = $container->get(ShowcaseConfiguration::class);
+        $kernel->shutdown();
+
+        self::assertInstanceOf(ShowcaseConfiguration::class, $configuration);
+        self::assertSame([], $configuration->backgrounds);
+    }
+
     public function testABackgroundIsAColourOrAColourWithHtmlAttributes(): void
     {
         $configuration = $this->configuration(['backgrounds' => [
