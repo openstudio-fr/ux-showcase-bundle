@@ -51,6 +51,7 @@ return static function (DefinitionConfigurator $definition): void {
             ->end()
             ->arrayNode('backgrounds')
                 ->info('Preview backgrounds, in display order: name => a CSS colour, or { color, html_attributes } to also set attributes on the <html> element of the bare page (a theme mode, for instance).')
+                ->performNoDeepMerging()
                 ->useAttributeAsKey('name')
                 ->normalizeKeys(false)
                 ->requiresAtLeastOneElement()
