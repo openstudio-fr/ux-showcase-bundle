@@ -15,6 +15,7 @@ namespace OpenStudio\UxShowcaseBundle\Tests\Functional;
 
 use OpenStudio\UxShowcaseBundle\Exception\DuplicateExampleException;
 use OpenStudio\UxShowcaseBundle\Exception\UnknownComponentException;
+use OpenStudio\UxShowcaseBundle\Library\ComponentReference;
 use OpenStudio\UxShowcaseBundle\Library\ComponentStatus;
 use OpenStudio\UxShowcaseBundle\ShowcaseRegistry;
 use OpenStudio\UxShowcaseBundle\Tests\Fixtures\Library\Configuration;
@@ -80,6 +81,16 @@ final class LibraryRegistryTest extends TestCase
         self::assertSame(ComponentStatus::Ready, $registry->component('demo', 'Demo:Button')?->status);
         self::assertSame('Chart', $registry->component('demo', 'Demo:Experimental:Chart')->label);
         self::assertSame(ComponentStatus::Waiting, $registry->component('other', 'Other:Note')?->status);
+    }
+
+    public function testComponentWithNoStatusIsVisibleAndDefaultStaysReady(): void
+    {
+        $registry = $this->registry();
+
+        self::assertNull($registry->component('other', 'Other:Plain')?->status);
+        self::assertContains('Other:Plain', array_map(static fn ($reference): string => $reference->name, $registry->components('other')));
+        self::assertSame(ComponentStatus::Ready, (new ComponentReference('X:Y'))->status);
+        self::assertNull($registry->component('demo', 'Demo:Legacy:Old'));
     }
 
     public function testExamplesOfEachSourceAreListedInDeclarationOrder(): void

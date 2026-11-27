@@ -35,7 +35,10 @@ final class ServiceLibrary implements ComponentLibraryInterface
 
     public function getComponents(): array
     {
-        return [new ComponentReference('Other:Note', 'Notes', ComponentStatus::Waiting, 'Note')];
+        return [
+            new ComponentReference('Other:Note', 'Notes', ComponentStatus::Waiting, 'Note'),
+            new ComponentReference('Other:Plain', 'Notes', null, 'Plain'),
+        ];
     }
 
     public function getGroups(): array
@@ -49,6 +52,7 @@ final class ServiceLibrary implements ComponentLibraryInterface
             public function getExamples(): iterable
             {
                 yield new Example('Other:Note', 'hello', props: ['text' => 'Hello']);
+                yield new Example('Other:Plain', 'hello', props: ['text' => 'Hello']);
             }
         };
     }

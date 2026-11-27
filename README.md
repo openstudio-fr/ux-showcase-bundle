@@ -129,6 +129,8 @@ ux_showcase:
                 'App:Legacy:Old': hidden
 ```
 
+A library written in PHP can pass `status: null` to a `ComponentReference` when it claims no status: no badge is shown and the component is listed like a ready one (`Hidden` is the only status that hides).
+
 Components are discovered from TwigComponent, anonymous ones (templates under a `components/` directory of a Twig path)
 and class ones. The name is the TwigComponent name, `:` separated; its group is the name below the prefix, without the
 last segment (`App:Form:Input` is in `Form`, `App:Button` in `General`). A component name is used as is in URLs, where

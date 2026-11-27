@@ -54,6 +54,21 @@ final class ScreenTest extends TestCase
         self::assertStringNotContainsString('Demo:Legacy:Old', (string) $this->client()->getResponse()->getContent());
     }
 
+    public function testComponentWithNoStatusIsListedAndShownWithoutBadge(): void
+    {
+        $crawler = $this->get('/_showcase/');
+
+        $plain = $crawler->filterXPath('//li[a[normalize-space()="Plain"]]');
+        self::assertCount(1, $plain);
+        self::assertCount(0, $plain->filterXPath('//span[contains(@class, "showcase-badge")]'));
+        $note = $crawler->filterXPath('//li[a[normalize-space()="Note"]]');
+        self::assertSame(['Waiting'], $this->texts($note, '//span[contains(@class, "showcase-badge")]'));
+
+        $page = $this->get('/_showcase/other/Other:Plain');
+        self::assertSame(200, $this->client()->getResponse()->getStatusCode());
+        self::assertCount(0, $page->filterXPath('//div[contains(@class, "showcase-page-head")]//span[contains(@class, "showcase-badge")]'));
+    }
+
     public function testIndexFlagsAComponentWithNoExampleInText(): void
     {
         $crawler = $this->get('/_showcase/');
